@@ -3,6 +3,7 @@ from pyparsing import (Literal, CaselessLiteral, Word, Combine, Group, Optional,
                        ZeroOrMore, Forward, nums, alphas, oneOf)
 import math
 import operator
+import numpy
 
 class NumericStringParser(object):
     '''
@@ -76,7 +77,10 @@ class NumericStringParser(object):
                    "exp": math.exp,
                    "abs": abs,
                    "trunc": lambda a: int(a),
-                   "round": round}
+                   "round": round,
+                   "sqrt": math.sqrt,
+                   "sgn": numpy.sign,
+                   "mod": operator.mod}
 #                  "sgn": lambda a: abs(a) > epsilon and cmp(a, 0) or 0}
 
     def evaluateStack(self, s):
@@ -96,10 +100,15 @@ class NumericStringParser(object):
         elif op[0].isalpha():
             return 0
         else:
-            return float(op)
+            if len(op)>30:
+                return int(op)
+            else:
+                return float(op)
 
     def eval(self, num_string, parseAll=True):
         self.exprStack = []
         results = self.bnf.parseString(num_string, parseAll)
         val = self.evaluateStack(self.exprStack[:])
+        if math.trunc(val) == val:
+            val = math.trunc(val)
         return val
