@@ -39,10 +39,14 @@ class NumericStringParser(object):
         minus = Literal("-")
         mult = Literal("*")
         div = Literal("/")
+        mod = Literal("%")
+        fact = Literal("!")
+        sl = Literal("<")
+        sr = Literal(">")
         lpar = Literal("(").suppress()
         rpar = Literal(")").suppress()
         addop = plus | minus
-        multop = mult | div
+        multop = mult | div | mod | sl | sr | fact
         expop = Literal("^")
         pi = CaselessLiteral("PI")
         expr = Forward()
@@ -70,7 +74,11 @@ class NumericStringParser(object):
                     "-": operator.sub,
                     "*": operator.mul,
                     "/": operator.truediv,
-                    "^": operator.pow}
+                    "^": operator.pow,
+                    "%": operator.mod,
+                    ">": self.shiftright,
+                    "<": self.shiftleft,
+                    "!": self.fact}
         self.fn = {"sin": math.sin,
                    "cos": math.cos,
                    "tan": math.tan,
@@ -78,19 +86,26 @@ class NumericStringParser(object):
                    "abs": abs,
                    "trunc": lambda a: int(a),
                    "round": round,
-                   "sqrt": math.sqrt,
+                   "log": math.log,
+                   "sqrt": self.sqrt,
                    "sgn": numpy.sign,
-                   "mod": operator.mod}
+                   "fact": self.fact,
+                   "ceil": numpy.ceil,
+                   "floor": numpy.floor}
 #                  "sgn": lambda a: abs(a) > epsilon and cmp(a, 0) or 0}
 
     def evaluateStack(self, s):
         op = s.pop()
         if op == 'unary -':
             return -self.evaluateStack(s)
-        if op in "+-*/^":
+        if op in "+-*/^%<>":
             op2 = self.evaluateStack(s)
             op1 = self.evaluateStack(s)
             return self.opn[op](op1, op2)
+        if op in "!":
+            self.evaluateStack(s)
+            op1 = self.evaluateStack(s)
+            return self.fact(op1)
         elif op == "PI":
             return math.pi  # 3.1415926535
         elif op == "E":
@@ -112,3 +127,20 @@ class NumericStringParser(object):
         if math.trunc(val) == val:
             val = math.trunc(val)
         return val
+    
+    def fact(self, num, useless=0):
+        total = 1
+        while num > 1:
+            total *= num
+            num -= 1
+        return total
+    
+    def sqrt(self, num):
+        return math.sqrt(abs(num))
+    
+    def shiftleft(self, a, b):
+        return a//2**b
+        
+    def shiftright(self, a, b):
+        return a*2**b
+            

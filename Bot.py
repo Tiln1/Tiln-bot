@@ -18,9 +18,6 @@ from discord.ext.commands import Bot
 
 from TilnBot.calceval import NumericStringParser
 from TilnBot.otherStuff import HelpMethods
-from _ast import If
-from test.test_nntplib import bypass_context
-from django.contrib.auth.context_processors import auth
 
 client = Bot(description="Tiln's bot", command_prefix="!?", pm_help = False)
 client.remove_command('help')
@@ -59,7 +56,8 @@ async def on_message(message):
 #             if len(message.content) > 0:
 #                 await client.delete_message(message)
     rolesset = False
-    
+    if message.author.bot == True:
+        return
     if message.channel == client.get_channel("465333717871886336") and not message.content.startswith("!?emojify") and not message.content.startswith("!?react") and not message.content.startswith("!?purge") and not message.content.startswith("!?calc"):
             message.content = "!?emojify " + message.content.replace("\n", "")
     if message.channel == client.get_channel("465333717871886336") and message.content.startswith("!?calc"):
@@ -78,11 +76,11 @@ async def on_message(message):
                 roles = message.server.roles
             rolesset = True
             
-            command=x.lower().split(" ", 1)[0]
+            command=mc.split(" ", 1)[0]
             for y in range(10, -1, -1):
                 x = x.replace(" "*(2**y+1), " ")
             message.content=command+x[len(command):]
-            cmd = message.content.split(" ")[0][2:]
+            cmd = command[2:]
             if not hm.cmddisabled(message.server.id, cmd):
                 await client.process_commands(message)
             else: await client.say("The command \"" + cmd + "\" is disabled in this server.")
@@ -91,13 +89,22 @@ async def on_message(message):
             cmd = message.content.split(" ", 1)[0][2:]
             if not hm.cmddisabled(message.server.id, cmd):
                 await client.process_commands(message)
-        elif ("+" in mc or "-" in mc or "/" in mc or "*" in mc or "^" in mc or "sin(" in mc or "cos(" in mc or "tan(" in mc or "exp(" in mc or "abs(" in mc or "trunc(" in mc or "round(" in mc or "sqrt(" in mc or "sgn(" in mc or "mod(" in mc) and not hm.cmddisabled(message.server.id, "calc") and not message.content.startswith("+") and not message.content.startswith("-") and not message.content.startswith("*") and not message.content.startswith("/"):
+        # ("+" in mc or "-" in mc or "/" in mc or "*" in mc or "^" in mc or "%" in mc or "sin(" in mc or "cos(" in mc or "tan(" in mc or "exp(" in mc or "abs(" in mc or "trunc(" in mc or "round(" in mc or "sqrt(" in mc or "sgn(" in mc or "mod(" in mc or "fact(" in mc) and 
+        elif not hm.cmddisabled(message.server.id, "calc"):
+            mc = mc.replace(",", "")
             nsp = NumericStringParser()
             result = ""
-            try: result = nsp.eval(mc)
+            try:
+                op = "+-*/^%<>"
+                for y in op:
+                    if mc.startswith(y):
+                        mc = hm.addprevcalc(message.author.id, mc)
+                result = nsp.eval(hm.wordnumtonum(mc))
+                if not str(result) == mc and not str(result) == mc.replace("+", "", 1) and not str(result) == mc.replace("-", "", 1):
+                    await client.send_message(message.channel, str("{:,}".format(result))[:2000])
+                    hm.storeprevcalc(message.author.id, str(result))
             except: ""
-            if result:
-                await client.send_message(message.channel, str(result)[:2000])
+                
         
             
             
@@ -154,20 +161,20 @@ import requests
 import justext
 @client.command(pass_context=True)
 async def ping(ctx):
-    if str(ctx.message.author) == "Tiln#0416":
-        response = requests.get("http://www.crunchyroll.com/yuruyuri")
-        paragraphs = justext.justext(response.content, justext.get_stoplist("English"))
-        s = "```"
-        start = False
-        for p in paragraphs:
-            if p.text.startswith("YuruYuri Season") and start == False:
-                start = True
-            elif p.text == "Viewers Also Liked":
-                break
-            if start:
-                s += p.text + "\n"
-        await client.say(s + "```")
-    else:
+#     if str(ctx.message.author) == "Tiln#0416":
+#         response = requests.get("http://www.crunchyroll.com/yuruyuri")
+#         paragraphs = justext.justext(response.content, justext.get_stoplist("English"))
+#         s = "```"
+#         start = False
+#         for p in paragraphs:
+#             if p.text.startswith("YuruYuri Season") and start == False:
+#                 start = True
+#             elif p.text == "Viewers Also Liked":
+#                 break
+#             if start:
+#                 s += p.text + "\n"
+#         await client.say(s + "```")
+#     else:
         msg = await client.say("Pong!")
         time = math.trunc((msg.timestamp - ctx.message.timestamp).total_seconds() * 1000)
         await client.edit_message(msg, "Pong! `" + str(time) + " ms`")
@@ -742,7 +749,9 @@ async def roll(ctx):
             nums[1] = sp[0]
         s = ""
         total = 0
-        n = nsp.eval(nums[1])
+        try:
+            n = nsp.eval(nums[1])
+        except: return
         dice = int(nums[0] or 1)
         cl = 1994
         mes = 1
@@ -888,9 +897,9 @@ async def rolecount(ctx):
 
 @client.command(pass_context = True)
 async def calc(ctx):
-    cmc = ctx.message.content.split(" ", 1)[1]
+    cmc = ctx.message.content.split(" ", 1)[1].replace(",", "")
     nsp = NumericStringParser()
-    await client.say(nsp.eval(cmc))
+    await client.say("{:,}".format(nsp.eval(hm.wordnumtonum(cmc))))
     
 @client.command(pass_context = True)
 async def killbot(ctx):
