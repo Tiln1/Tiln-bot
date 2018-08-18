@@ -5,7 +5,7 @@ Created on May 12, 2018
 '''
 
 import discord
-import re
+import json
 
 
 class HelpMethods(object):
@@ -16,14 +16,10 @@ class HelpMethods(object):
     emojdoub = ['🆎', '🆑', '🆔', '🆖', '🆗', '🆚', '🚾', '‼', '⁉', '🆕', '🆘', '🆒', '🆓', '🔟']
     
     def cmddisabled(self, sid, cmd):
-        file = open('servers.csv', 'r+')
-        servers = file.read().split('\n')
-        file.close()
-        server = ''
-        for x in servers:
-            if x.startswith(sid):
-                server = x
-        for x in server.split(','):
+        file = open('servers.json', 'r+')
+        servers = json.load(file)
+        server = servers.get(sid) or []
+        for x in server:
             if cmd == x:
                 return True
         return False
@@ -60,7 +56,7 @@ class HelpMethods(object):
         else: await client.say("You don't have permission to use that command or that part of that command :sweat_smile: ")
         return False
     
-    def wordnumtonum(self, s):
+    def wordnumtonum(self, s, uid):
         s = s.lower()
 #         p = re.compile('[a-z]')
 #         m = re.findall(p, s)
@@ -82,8 +78,11 @@ class HelpMethods(object):
             'and':'+', 'plus':'+', 'minus':'-', 'negative':'-', 'x':'*', 'times':'*', 'divide':'/', 'point':'.', 'tesseracted':'^4', 'cubed':'^3', 'squared':'^2', 
             'gross':'*144', 'dozen':'*12', 'score':'*20', 'naught':'0', 'none':'0', 'zip':'0', 'nada':'0', 
             'fif':'5', 'for':'4', 'thir':'3', 'twen':'2', 'ty':'*10)+', 'π':'pi', '!':'!1', 
+            'k':'000', 'm':'000000', 'b':'000000000', 't':str(10**12)[1:],
+            ')(':')*(',
             '++':'+', '+*':'*', '+/':'/', '+%':'%', '+-':'-', '+^':'^', '*+':'*', '.+':'.', 
-            '**':'*', '/*':'/', '%*':'%', '-*':'-', '^*':'^', '<*':'<', '>*':'>'
+            '**':'*', '/*':'/', '%*':'%', '-*':'-', '^*':'^', '<*':'<', '>*':'>',
+            'ans':self.addprevcalc(uid, '')
             }
         for k, v in rpldic.items():
             s = s.replace(k, v)
@@ -101,26 +100,16 @@ class HelpMethods(object):
     
     
     def addprevcalc(self, uid, message):
-        file = open('usercalcs.csv', 'r+')
-        users = file.read().split('\n')
-        file.close()
-        for x in users:
-            if x.split(',')[0] == uid:
-                return x.split(',')[1] + message
-        return message
+        file = open('usercalcs.json', 'r+')
+        users = json.load(file)
+        return (users.get(uid) or "") + message
         
     def storeprevcalc(self, uid, calc):
-        file = open('usercalcs.csv', 'r+')
-        users = file.read().split('\n')
-        file.close()
-        file = open('usercalcs.csv', 'w+')
-        s = ""
-        for x in users:
-            if not x.split(',')[0] == uid:
-                s += x + "\n"
-        s = s.replace("\n\n", "\n")
-        s += uid + ',' + calc
-        file.write(s)
+        file = open('usercalcs.json', 'r+')
+        users = json.load(file)
+        users.update({uid: calc})
+        file = open('usercalcs.json', 'w+')
+        file.write(json.dumps(users))
         
     async def dup_char_to_emoji(self, c, dup, emojdup):
         if c == 'a':

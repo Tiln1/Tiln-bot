@@ -9,6 +9,8 @@ import re
 from decimal import Decimal
 from datetime import datetime
 import os.path
+import asyncio
+import json
 
 import platform
 
@@ -19,6 +21,9 @@ from discord.ext.commands import Bot
 from TilnBot.calceval import NumericStringParser
 from TilnBot.otherStuff import HelpMethods
 
+import requests
+import justext
+
 client = Bot(description="Tiln's bot", command_prefix="!?", pm_help = False)
 client.remove_command('help')
 
@@ -28,7 +33,8 @@ emojAN = ['🇦', '🇧', '🇨', '🇩', '🇪', '🇫', '🇬', '🇭', '🇮'
 #:hash: :exclamation: :question: :heavy_plus_sign: :heavy_minus_sign: :heavy_multiplication_x: :heavy_division_sign: :heavy_dollar_sign:
 emojmisc = ['🔥', '❗', '❓', '➕', '➖', '*⃣', '➗', '💲']
 emojdoub = ['🆎', '🆑', '🆔', '🆖', '🆗', '🆚', '🚾', '‼', '⁉', '🆕', '🆘', '🆒', '🆓', '🔟']
-cmds = ['help', 'uroles', 'pin', 'react', 'clearreactions', 'purge', 'collectpoll', 'exclusivizeroles', 'timedroles', 'linkroles', 'roll', 'rps', 'emojify', 'pfp', 'rolecount', 'calc']
+cmds = (['help', 'uroles', 'pin', 'react', 'clearreactions', 'purge', 'collectpoll', 'exclusivizeroles', 'timedroles', 'linkroles', 'roll', 'rps', 'emojify', 'pfp', 
+        'rolecount', 'calc', 'reminder'])
 
 
 
@@ -44,7 +50,7 @@ async def on_ready():
     print('https://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=268774464'.format(client.user.id))
     print('--------')
     await client.change_presence(game=discord.Game(name="!?help for help")) #This is buggy, let us know if it doesn't work.
-    await pm_peeps()
+#     await pm_peeps()
     return
 
 
@@ -83,7 +89,7 @@ async def on_message(message):
             cmd = command[2:]
             if not hm.cmddisabled(message.server.id, cmd):
                 await client.process_commands(message)
-            else: await client.say("The command \"" + cmd + "\" is disabled in this server.")
+            else: await client.send_message(message.channel, "The command \"" + cmd + "\" is disabled in this server.")
         elif rp.match(x):
             message.content="!?roll "+x
             cmd = message.content.split(" ", 1)[0][2:]
@@ -99,8 +105,9 @@ async def on_message(message):
                 for y in op:
                     if mc.startswith(y):
                         mc = hm.addprevcalc(message.author.id, mc)
-                result = nsp.eval(hm.wordnumtonum(mc))
-                if not str(result) == mc and not str(result) == mc.replace("+", "", 1) and not str(result) == mc.replace("-", "", 1):
+                        break
+                result = nsp.eval(hm.wordnumtonum(mc, message.author.id))
+                if not str(result) == mc.replace(' ', '') and not str(result) == mc.replace("+", "", 1) and not str(result) == mc.replace("-", "", 1):
                     await client.send_message(message.channel, str("{:,}".format(result))[:2000])
                     hm.storeprevcalc(message.author.id, str(result))
             except: ""
@@ -114,32 +121,21 @@ async def on_member_update(before, after):
         return
     sid = after.server.id
     
-    file = open('exclusiveroles.csv', 'r')
-    exservers = file.read().split('\n')
-    file.close() 
-    exrg = None
-    for x in exservers:
-        if x.startswith(sid):
-            exrg = x
+    file = open('exclusiveroles.json', 'r+')
+    exservers = json.load(file)
+    exrg = exservers.get(sid)
     
-    file = open('linkedroles.csv', 'r')
-    linkservers = file.read().split('\n')
-    file.close()
-    sid = after.server.id
-    linkrp = None
-    for x in linkservers:
-        if x.startswith(sid):
-            linkrp = x
-    if linkrp == None:
-        return
+    file = open('linkedroles.json', 'r+')
+    linkservers = json.load(file)
+    linkrp = linkservers.get(sid)
     #role added
     for x in after.roles:
         if linkrp:
-            for y in linkrp.split(',')[1:]:
+            for y in linkrp:
                 if x.name == y.split(':')[0] and not x in before.roles:
                     await client.add_roles(after, discord.utils.get(after.server.roles, name=y.split(":")[1]))
         if exrg:
-            for y in exrg.split(',')[1:]:
+            for y in exrg:
                 if x.name in y.split(':') and not x in before.roles:
                     rtr = []
                     for z in y.split(':'):
@@ -151,14 +147,13 @@ async def on_member_update(before, after):
     #role removed
     for x in before.roles:
         if linkrp:
-            for y in linkrp.split(',')[1:]:
+            for y in linkrp:
                 if x.name == y.split(':')[0] and not x in after.roles:
                     await client.remove_roles(after, discord.utils.get(after.server.roles, name=y.split(":")[1]))
                     return
 
 
-import requests
-import justext
+
 @client.command(pass_context=True)
 async def ping(ctx):
 #     if str(ctx.message.author) == "Tiln#0416":
@@ -218,8 +213,10 @@ async def help(ctx):
             await client.say("```!?"+c+" [number of messages]\nor for deleting a single user's messsages:\n!?"+c+" [@member/userid] [number of messages]\nor for deleting messages except by a certain user:\n!?"+c+" [@member/userid]! [number of messages]```")
         elif c == "collectpoll" and not hm.cmddisabled(ctx.message.server.id, c):
             await client.say("```!?"+c+" channelid [number of messages that consist of the poll]```")
+        elif c == "reminder" and not hm.cmddisabled(ctx.message.server.id, c):
+            await client.say("```!?"+c+" *[time][y/o/w/d/h/m/s] Reason for timer\n!?"+c+" 1y It has been a year haha!```")
         elif c == "timedroles" and not hm.cmddisabled(ctx.message.server.id, c):
-            await client.say("```!?timedroles"+c+" [time][y/o/w/d/h/m/s] role_name\n!?"+c+" 1y the_best_role```")
+            await client.say("```!?"+c+" [time][y/o/w/d/h/m/s] role_name\n!?"+c+" 1y the_best_role```")
         elif c == "emojify" and not hm.cmddisabled(ctx.message.server.id, c):
             await client.say("```!?"+c+" [message]```")
         elif c == "pfp" and not hm.cmddisabled(ctx.message.server.id, c):
@@ -248,79 +245,60 @@ async def help(ctx):
 @client.command(pass_context=True)
 async def disable(ctx):
     if ctx.message.channel.permissions_for(ctx.message.author).manage_server:
-        file = open('servers.csv', 'r')
-        servers = file.read().split("\n")
-        file.close()
+        file = open('servers.json', 'r+')
+        servers = json.load(file)
         sid = ctx.message.server.id
-        server = None
-        s = ""
-        for x in servers:
-            if x.startswith(sid):
-                server = x
-            else:
-                s += x + "\n"
-    
-        if not server:
-            server = sid
+        server = servers.get(sid) or []
         
-        cmc = ctx.message.content.split(" ")
-        if len(cmc) > 1:
-            for x in cmc[1:]:
+        cmc = ctx.message.content.split(" ")[1:]
+        if len(cmc) > 0:
+            for x in cmc:
                 if x in cmds:
                     disableable = True
-                    for y in server.split(","):
+                    for y in server:
                         if y == x:
                             disableable = False
                             break
                     if disableable:
-                        server += "," + x
+                        server.append(x)
                 elif x == "all":
                     for y in cmds:
                         disableable = True
-                        for z in server.split(","):
+                        for z in server:
                             if z == y:
                                 disableable = False
                                 break
                         if disableable:
-                            server += "," + y
+                            server.append(y)
                     break
         else: return
-        s += server
-        file = open('servers.csv', 'w')
-        file.write(s)
-        file.close()
+        servers.update({sid:server})
+        file = open('servers.json', 'w+')
+        file.write(json.dumps(servers))
     else: await client.say("You don't have permission to use that command :sweat_smile: ")
     
 
 @client.command(pass_context=True)
 async def enable(ctx):
     if ctx.message.channel.permissions_for(ctx.message.author).manage_server:
-        file = open('servers.csv', 'r')
-        servers = file.read().split("\n")
-        file.close()
+        file = open('servers.json', 'r+')
+        servers = json.load(file)
         sid = ctx.message.server.id
-        server = None
-        s = ""
-        for x in servers:
-            if x.startswith(sid):
-                server = x
-            else:
-                s += x + "\n"
+        server = servers.get(sid)
         if not server: return
-        cmc = ctx.message.content.split(" ")
-        if len(cmc) > 1:
-            for x in cmc[1:]:
+        cmc = ctx.message.content.split(" ")[1:]
+        if len(cmc) > 0:
+            for x in cmc:
                 if x in cmds:
-                    server = server.replace("," + x, "")
+                    server.remove(x)
                 elif x == "all":
                     for y in cmds:
-                        server = server.replace("," + y, "")
+                        server.remove(y)
                     break
         else: return
-        s += server
-        file = open('servers.csv', 'w')
-        file.write(s)
-        file.close()
+        servers.update({sid:server})
+        file = open('servers.json', 'w+')
+        file.write(json.dumps(servers))
     else: await client.say("You don't have permission to use that command :sweat_smile: ")
     
 
@@ -613,7 +591,48 @@ async def collectpoll(ctx):
                 #s += k + ": " + str(dic[k]) + "\n"
                 file.write(str(k.replace(",", "").encode("utf-8")) + "," + str(dic[k]) + "\n")
         await client.send_file(ctx.message.channel, "poll.csv")
+
+
+@client.command(pass_context = True)
+async def reminder(ctx):
+    cmc = ctx.message.content.split(" ", 2)[1:]
+    num = 0
+    timedict = {'y':365.2425*24*3600, 'o':30.5*24*3600, 'w':7*24*3600, 'd':24*3600, 'h':3600, 'm':60, 's':1}
+    tim = cmc[0]
+    for k, v in timedict.items():
+        for x in range(len(tim)):
+            if tim[x] == k:
+                num += float(tim[:x])*v
+                tim = tim[(x+1):]
+                break
+    if len(tim) > 0:
+        num += float(tim)
     
+    auth = ctx.message.author.mention
+    await client.delete_message(ctx.message)
+    await asyncio.sleep(num)
+    rem = ""
+    if len(cmc) > 1:
+        rem = cmc[1]
+    secs = math.trunc(num)
+    fortim = ""
+    if secs > 24*3600:
+        n = math.trunc(secs/(24*3600))
+        secs -= n*24*3600
+        fortim += str(n) + 'd'
+    if secs > 3600:
+        n = math.trunc(secs/3600)
+        secs -= n*3600
+        fortim += str(n) + 'h'
+    if secs > 60:
+        n = math.trunc(secs/60)
+        secs -= n*60
+        fortim += str(n) + 'm'
+    if secs > 0:
+        fortim += str(secs) + 's'
+    
+    await client.say(auth + ", your reminder is ready with reason: " + '"' + rem.replace("\\", "") + '"' + "```The command invocation message for this message was sent " + fortim + " ago.```")
+
 
 @client.command(pass_context = True)
 async def exclusivizeroles(ctx):
@@ -628,33 +647,25 @@ async def exclusivizeroles(ctx):
                 return
             else: exroles.append(r)
             strexroles.append(x.replace("_", " "))
-        file = open('exclusiveroles.csv', 'r')
-        servers = file.read().split("\n")
-        file.close()
+
+        file = open('exclusiveroles.json', 'r+')
+        servers = json.load(file)
         sid = ctx.message.server.id
-        server = ""
+        server = servers.get(sid) or []
         s = ""
-        for x in servers:
-            if x.startswith(sid):
-                server = x
-            else:
-                s += x + "\n"
-        if not server:
-            server = str(sid)
         add = True
-        for x in server.split(",")[1:]:
+        for x in server:
             if strexroles == x.split(":"):
                 add = False
                 server = server.replace("," + x, "")
         if add:
-            server += ","
             for x in strexroles:
-                server += x + ":"
-            server = server[:-1]
-        s += server
-        file = open('exclusiveroles.csv', 'w')
-        file.write(s)
-        file.close()
+                s += x + ":"
+            s = s[:-1]
+        server.append(s)
+        servers.update({sid:server})
+        file = open('exclusiveroles.json', 'w+')
+        file.write(json.dumps(servers))
     else: await client.say("You don't have permission to use that command :sweat_smile: ")
 
         
@@ -704,30 +715,20 @@ async def linkroles(ctx):
         cmcs = ctx.message.content.split(" ")[1:]
         rec = discord.utils.get(ctx.message.server.roles, name=cmcs[0].replace("_", " "))
         torec = discord.utils.get(ctx.message.server.roles, name=cmcs[1].replace("_", " "))
-        file = open('linkedroles.csv', 'r')
-        servers = file.read().split("\n")
-        file.close()
+        file = open('servers.json', 'r+')
+        servers = json.load(file)
         sid = ctx.message.server.id
-        server = ""
-        s = ""
-        for x in servers:
-            if x.startswith(sid):
-                server = x
-            else:
-                s += x + "\n"
-        if not server:
-            server = str(sid)
+        server = servers.get(sid) or []
         add = True
-        for x in server.split(",")[1:]:
+        for x in server:
             if rec.name == x.split(":")[0] and torec.name == x.split(":")[1]:
                 add = False
-                server = server.replace("," + x, "")
+                server.remove(x)
         if add:
-            server += "," + rec.name + ":" + torec.name
-        s += server
-        file = open('linkedroles.csv', 'w')
-        file.write(s)
-        file.close()
+            server.add(rec.name + ":" + torec.name)
+        servers.update({sid:server})
+        file = open('exclusiveroles.json', 'w+')
+        file.write(json.dumps(servers))
     else: await client.say("You don't have permission to use that command :sweat_smile: ")
 
 @client.command(pass_context = True)
@@ -755,7 +756,7 @@ async def roll(ctx):
         dice = int(nums[0] or 1)
         cl = 1994
         mes = 1
-        if dice > (cl + 6 * mes) // 2:
+        if dice > 1000//len(str(n)):
             await client.say("Too many dice")
             return
         for _11 in range(dice):
@@ -877,7 +878,10 @@ async def emojify(ctx):
     
 @client.command(pass_context = True)
 async def pfp(ctx):
-    await client.say(ctx.message.author.avatar_url)
+    if ctx.message.mentions:
+        user = ctx.message.mentions[0]
+    else: user = ctx.message.author
+    await client.say(user.avatar_url)
     
     
 @client.command(pass_context = True)
@@ -899,7 +903,15 @@ async def rolecount(ctx):
 async def calc(ctx):
     cmc = ctx.message.content.split(" ", 1)[1].replace(",", "")
     nsp = NumericStringParser()
-    await client.say("{:,}".format(nsp.eval(hm.wordnumtonum(cmc))))
+    await client.say("{:,}".format(nsp.eval(hm.wordnumtonum(cmc, ctx.message.author.id))))
+
+
+@client.command(pass_context = True)
+async def wa(ctx):
+    cmc = ctx.message.content.split(' ', 1)[1]
+    r = requests.get('http://api.wolframalpha.com/v1/result?appid=U7QXJX-VRAQKV8L5A&i=' + cmc)
+    await client.say(r.text)
+        
     
 @client.command(pass_context = True)
 async def killbot(ctx):
@@ -908,7 +920,6 @@ async def killbot(ctx):
         await client.logout()
 
 
-import asyncio
 async def pm_peeps():
     tonline = True
     eionline = True
