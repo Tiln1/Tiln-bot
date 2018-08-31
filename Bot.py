@@ -23,6 +23,7 @@ from TilnBot.otherStuff import HelpMethods
 
 import requests
 import justext
+from _ast import Await
 
 client = Bot(description="Tiln's bot", command_prefix="!?", pm_help = False)
 client.remove_command('help')
@@ -64,6 +65,32 @@ async def on_message(message):
     rolesset = False
     if message.author.bot == True:
         return
+    if not message.server:
+        for x in message.content.split("\n"):
+            mc = x.lower()
+            rp = re.compile(r"\d*d(?:\d|\^|\*|-|\+| )+")
+            if x.startswith("!?"):
+                await client.process_commands(message)
+            elif rp.match(x):
+                message.content="!?roll "+x
+                cmd = message.content.split(" ", 1)[0][2:]
+                await client.process_commands(message)
+            else:
+                mc = mc.replace(",", "")
+                nsp = NumericStringParser()
+                result = ""
+                try:
+                    op = "+-*/^%<>"
+                    for y in op:
+                        if mc.startswith(y):
+                            mc = hm.addprevcalc(message.author.id, mc)
+                            break
+                    result = nsp.eval(hm.wordnumtonum(mc, message.author.id))
+                    if not str(result) == mc.replace(' ', '') and not str(result) == mc.replace("+", "", 1) and not str(result) == mc.replace("-", "", 1):
+                        await client.send_message(message.channel, str("{:,}".format(result))[:2000])
+                        hm.storeprevcalc(message.author.id, str(result))
+                except: ""
+        return
     if message.channel == client.get_channel("465333717871886336") and not message.content.startswith("!?emojify") and not message.content.startswith("!?react") and not message.content.startswith("!?purge") and not message.content.startswith("!?calc"):
             message.content = "!?emojify " + message.content.replace("\n", "")
     if message.channel == client.get_channel("465333717871886336") and message.content.startswith("!?calc"):
@@ -73,6 +100,15 @@ async def on_message(message):
         except: ""
         if result:
             message.content = "!?emojify " + str(result)
+#     if message.channel == client.get_channel("455380663013736481"):
+#         count = 0
+#         msg = ""
+#         async for x in client.logs_from(message.channel):
+#             if count == 1:
+#                 await client.send_message(message.channel, "!?react " + x.id + " " + msg)
+#                 break
+#             msg = x.content
+#             count += 1
     for x in message.content.split("\n"):
         mc = x.lower()
         rp = re.compile(r"\d*d(?:\d|\^|\*|-|\+| )+")
@@ -562,15 +598,15 @@ async def purge(ctx):
 
 @client.command(pass_context = True)
 async def collectpoll(ctx):
-    cmc = ctx.message.content.split(" ");
+    cmc = ctx.message.content.split(" ")[1:];
     num = 1
-    if len(cmc) > 2:
-        if cmc[2].isdigit():
-            num = int(cmc[2]) or 1
+    if len(cmc) > 1:
+        if cmc[1].isdigit():
+            num = int(cmc[1]) or 1
     i = 0
     dic = {}
-    async for x in client.logs_from(client.get_channel(cmc[1])):
-        s = "​"
+    async for x in client.logs_from(client.get_channel(cmc[0])):
+        s = x.content
         if x.reactions:
             i += 1
             mes = x.content.split("\n")
@@ -764,8 +800,8 @@ async def roll(ctx):
             total += rand
             s += str(rand) + " "
         if dice > 1:
-            if len(cmcs)>2:
-                s += str(math.trunc(nsp.eval(str(total) + ''.join(cmcs[2:]))))
+            if len(cmcs)>1:
+                s += str(math.trunc(nsp.eval(str(total) + ''.join(cmcs[1:]))))
             else:
                 s += str(total)
         if dice < 2:
@@ -911,6 +947,16 @@ async def wa(ctx):
     cmc = ctx.message.content.split(' ', 1)[1]
     r = requests.get('http://api.wolframalpha.com/v1/result?appid=U7QXJX-VRAQKV8L5A&i=' + cmc)
     await client.say(r.text)
+
+
+@client.command(pass_context = True)
+async def palindrome(ctx):
+    cmc = ctx.message.content.split(' ', 1)[1].lower().replace(' ', '')
+    for x, y in zip(cmc, cmc[::-1]):
+        if not x == y:
+            await client.say("No")
+            return
+    await client.say("Yes")
         
     
 @client.command(pass_context = True)

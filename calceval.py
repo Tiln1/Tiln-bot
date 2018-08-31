@@ -49,9 +49,10 @@ class NumericStringParser(object):
         multop = mult | div | mod | sl | sr | fact
         expop = Literal("^")
         pi = CaselessLiteral("PI")
+        phi = CaselessLiteral("PHI")
         expr = Forward()
         atom = ((Optional(oneOf("- +")) +
-                 (ident + lpar + expr + rpar | pi | e | fnumber).setParseAction(self.pushFirst))
+                 (ident + lpar + expr + rpar | phi | pi | e | fnumber).setParseAction(self.pushFirst))
                 | Optional(oneOf("- +")) + Group(lpar + expr + rpar)
                 ).setParseAction(self.pushUMinus)
         # by defining exponentiation as "atom [ ^ factor ]..." instead of
@@ -110,6 +111,8 @@ class NumericStringParser(object):
             return math.pi  # 3.1415926535
         elif op == "E":
             return math.e  # 2.718281828
+        elif op == "PHI":
+            return (1+5**0.5)/2
         elif op in self.fn:
             return self.fn[op](self.evaluateStack(s))
         elif op[0].isalpha():
@@ -136,7 +139,7 @@ class NumericStringParser(object):
         return total
     
     def sqrt(self, num):
-        return math.sqrt(abs(num))
+        return abs(num)**0.5
     
     def shiftleft(self, a, b):
         return a//2**b

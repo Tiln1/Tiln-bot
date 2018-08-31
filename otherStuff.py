@@ -65,31 +65,30 @@ class HelpMethods(object):
 #             s = s.replace(x, '(' + x + ')')
 
 #         .replace('ninety', '9').replace('seventy', '7').replace('sixty', '6').replace('fifty', '5').replace('forty', '4').replace('thirty', '3').replace('twenty', '2')
-        rpldic = {' ':'', '∞':'infinity', 'infinity':'1.7976931348623157e+308', 'centillion':'*'+str(10**303)+')', 'nonagintillion':str(10**273)+')', 
-            'octogintillion':'*'+str(10**243)+')', 'septuagintillion':'*'+str(10**213)+')', 'sexagintillion':'*'+str(10**183)+')', 
-            'quinquagintillion':'*'+str(10**153)+')', 'quadragintillion':'*'+str(10**123)+')', 'trigintillion':'*'+str(10**93)+')', 
-            'vigintillion':'*'+str(10**63)+')', 'decillion':'*'+str(10**33)+')', 'novem':str(10**27), 'octo':str(10**24), 
+        rpldic = {' ':'', '∞':'infinity', 'infinity':'1.7976931348623157e+308', 'centillion':'*'+str(10**303)+'', 'nonagintillion':str(10**273)+'', 
+            'octogintillion':'*'+str(10**243)+'', 'septuagintillion':'*'+str(10**213)+')', 'sexagintillion':'*'+str(10**183)+'', 
+            'quinquagintillion':'*'+str(10**153)+'', 'quadragintillion':'*'+str(10**123)+'', 'trigintillion':'*'+str(10**93)+'', 
+            'vigintillion':'*'+str(10**63)+'', 'decillion':'*'+str(10**33)+')', 'novem':str(10**27), 'octo':str(10**24), 
             'septen':str(10**21), 'sex':str(10**18), 'quin':str(10**15), 'quattour':str(10**12), 'tre':str(10**9), 
-            'duo':str(10**6), 'un':str(10**3), 'nonillion':str(10**30)+')', 'octillion':'*'+str(10**27)+')', 'septillion':'*'+str(10**24)+')', 
-            'sextillion':'*'+str(10**21)+')', 'quintillion':'*'+str(10**18)+')', 'quadrillion':'*'+str(10**15)+')', 'trillion':'*'+str(10**12)+')', 
-            'billion':'*'+str(10**9)+')', 'million':'*'+str(10**6)+')', 'thousand':'*1000)', 'hundred':'*100)', 
-            'eighty':'eightty', 'teen':'+10)+', 'twelve':'12', 'eleven':'11', 'ten':'10', 
+            'duo':str(10**6), 'un':str(10**3), 'nonillion':str(10**30)+'', 'octillion':'*'+str(10**27)+'', 'septillion':'*'+str(10**24)+'', 
+            'sextillion':'*'+str(10**21)+'', 'quintillion':'*'+str(10**18)+'', 'quadrillion':'*'+str(10**15)+'', 'trillion':'*'+str(10**12)+'', 
+            'billion':'*'+str(10**9)+'', 'million':'*'+str(10**6)+'', 'thousand':'*1000', 'hundred':'*100', 
+            'eighty':'eightty', 'teen':'+10', 'twelve':'12', 'eleven':'11', 'ten':'10', 
             'nine':'+9', 'eight':'+8', 'seven':'+7', 'six':'+6', 'five':'+5', 'four':'+4', 'three':'+3', 'two':'+2', 'one':'+1', 'zero':'0', 
             'and':'+', 'plus':'+', 'minus':'-', 'negative':'-', 'x':'*', 'times':'*', 'divide':'/', 'point':'.', 'tesseracted':'^4', 'cubed':'^3', 'squared':'^2', 
             'gross':'*144', 'dozen':'*12', 'score':'*20', 'naught':'0', 'none':'0', 'zip':'0', 'nada':'0', 
-            'fif':'5', 'for':'4', 'thir':'3', 'twen':'2', 'ty':'*10)+', 'π':'pi', '!':'!1', 
-            'k':'000', 'm':'000000', 'b':'000000000', 't':str(10**12)[1:],
+            'fif':'+5', 'for':'+4', 'thir':'+3', 'twen':'+2', 'ty':'*10', 'π':'pi', '!':'!1', 
+            'k':'000', 'm':'000000',
             ')(':')*(',
             '++':'+', '+*':'*', '+/':'/', '+%':'%', '+-':'-', '+^':'^', '*+':'*', '.+':'.', 
             '**':'*', '/*':'/', '%*':'%', '-*':'-', '^*':'^', '<*':'<', '>*':'>',
+            '-.':'-0.', '*.':'*0.', '+.':'+0.', '/.':'/0.', '^.':'^0.',
             'ans':self.addprevcalc(uid, '')
             }
         for k, v in rpldic.items():
             s = s.replace(k, v)
         if s.endswith('+'):
             s = s[:-1]
-        if s.startswith('*'):
-            s = s[1:]
         openp = len(s) - len(s.replace('(', ''))
         closep = len(s) - len(s.replace(')', ''))
         if openp > closep:
