@@ -24,6 +24,7 @@ from TilnBot.otherStuff import HelpMethods
 import requests
 import justext
 from _ast import Await
+from unicodedata import category
 
 client = Bot(description="Tiln's bot", command_prefix="!?", pm_help = False)
 client.remove_command('help')
@@ -34,7 +35,7 @@ emojAN = ['🇦', '🇧', '🇨', '🇩', '🇪', '🇫', '🇬', '🇭', '🇮'
 #:hash: :exclamation: :question: :heavy_plus_sign: :heavy_minus_sign: :heavy_multiplication_x: :heavy_division_sign: :heavy_dollar_sign:
 emojmisc = ['🔥', '❗', '❓', '➕', '➖', '*⃣', '➗', '💲']
 emojdoub = ['🆎', '🆑', '🆔', '🆖', '🆗', '🆚', '🚾', '‼', '⁉', '🆕', '🆘', '🆒', '🆓', '🔟']
-cmds = (['help', 'uroles', 'pin', 'react', 'clearreactions', 'purge', 'collectpoll', 'exclusivizeroles', 'timedroles', 'linkroles', 'roll', 'rps', 'emojify', 'pfp', 
+cmds = (['help', 'uroles', 'pin', 'react', 'clearreactions', 'purge', 'collectpoll', 'exclusivizeroles', 'timedroles', 'linkroles', 'privatechannels','roll', 'rps', 'emojify', 'pfp', 
         'rolecount', 'calc', 'reminder', 'dtm'])
 
 
@@ -51,7 +52,7 @@ async def on_ready():
     print('https://discordapp.com/oauth2/authorize?client_id={}&scope=bot&permissions=268774464'.format(client.user.id))
     print('--------')
     await client.change_presence(activity=discord.Game(name="!?help for help")) #This is buggy, let us know if it doesn't work.
-#     await pm_peeps()
+    await hm.autocleanpcdb(client)
     return
 
 
@@ -120,11 +121,10 @@ async def on_message(message):
                 roles = message.guild.roles
             rolesset = True
             
-            command=mc.split(" ", 1)[0]
+            cmd = mc.split(" ", 1)[0][2:]
             for y in range(10, -1, -1):
                 x = x.replace(" "*(2**y+1), " ")
-            message.content=command+x[len(command):]
-            cmd = command[2:]
+            message.content = x
             if not hm.cmddisabled(str(message.guild.id), cmd):
                 await client.process_commands(message)
             else: await message.channel.send("The command \"" + cmd + "\" is disabled in this guild.")
@@ -145,10 +145,11 @@ async def on_message(message):
                     break
             try:
                 result = nsp.eval(hm.wordnumtonum(mc, str(message.author.id)))
-            except: return
-            if not str(result) == mc.replace(' ', '') and not str(result) == mc.replace("+", "", 1) and not str(result) == mc.replace("-", "", 1):
-                await message.channel.send(str("{:,}".format(result))[:2000])
-                hm.storeprevcalc(str(message.author.id), str(result))
+            except: ""
+            else:
+                if not str(result) == mc.replace(' ', '') and not str(result) == mc.replace("+", "", 1) and not str(result) == mc.replace("-", "", 1):
+                    await message.channel.send(str("{:,}".format(result))[:2000])
+                    hm.storeprevcalc(str(message.author.id), str(result))
                 
         
             
@@ -194,10 +195,11 @@ async def on_member_update(before, after):
 
 @client.command(pass_context=True)
 async def ping(ctx):
-#     if str(ctx.message.author) == "Tiln#0416":
-#         await ctx.message.channel.send(ctx.message.channel.hash)
-#     else:
-        msg = await ctx.message.channel.send("Pong!")
+    if str(ctx.author) == "Tiln#0416":
+        for x in client.guilds:
+            await ctx.channel.send(x.name)
+    else:
+        msg = await ctx.channel.send("Pong!")
         time = math.trunc((msg.created_at - ctx.message.created_at).total_seconds() * 1000)
         await msg.edit(content="Pong! `" + str(time) + " ms`")
     
@@ -209,80 +211,90 @@ async def help(ctx):
     base = False
     if len(com)>1:
         c = com[1]
-        if not not hm.cmddisabled(str(ctx.message.guild.id), c):
+        if not hm.cmddisabled(str(ctx.guild.id), c):
             if c == "disable":
-                await ctx.message.channel.send("```!?disable *commandstodisable\n!?disable role1 role2 role3```")
+                await ctx.channel.send("```!?disable *commandstodisable\n!?disable role1 role2 role3```")
             elif c == "enable":
-                await ctx.message.channel.send("```!?enable *commandstoenable\n!?enable all```")
+                await ctx.channel.send("```!?enable *commandstoenable\n!?enable all```")
             elif c == "uroles":
-                await ctx.message.channel.send("```!?"+c+" @member *rolestoadd|*rolestoremove\nExample: !?"+c+" Farmer_III Kilofarmer_III Megafarmer_III Gigafarmer_III|Gigafarmer_II Eggs```")
+                await ctx.channel.send("```!?"+c+" @member *rolestoadd|*rolestoremove\nExample: !?"+c+" @Tiln Farmer_III Kilofarmer_III Megafarmer_III Gigafarmer_III|Gigafarmer_II Eggs```")
             elif c == "pin":
-                await ctx.message.channel.send("```!?"+c+" <@member>\n<> Means optional ```")
+                await ctx.channel.send("```!?"+c+" <@member>\n<> Means optional ```")
             elif c == "react":
                 if len(com) > 2:
                     b = com[2]
                     if b == "repeats":
-                        await ctx.message.channel.send("```diff\n3 on all letters;\n-j,k,q,z\n+a, a, d, e, e, h, i, i, l, m, n, o, r, s, t, t, !, ?, *, *```")
+                        await ctx.channel.send("```diff\n3 on all letters;\n-j,k,q,z\n+a, a, d, e, e, h, i, i, l, m, n, o, r, s, t, t, !, ?, *, *```")
                         return
                     elif b == "doubles":
-                        await ctx.message.channel.send("```ab, cl, id, ng, ok, vs, wc, !!, !?, new, sos, cool, free, 10```")
+                        await ctx.channel.send("```ab, cl, id, ng, ok, vs, wc, !!, !?, new, sos, cool, free, 10```")
                         return
                     elif b == "misc":
-                        await ctx.message.channel.send("```+, -, *, /, $, !, ?```")
+                        await ctx.channel.send("```+, -, *, /, $, !, ?```")
                         return
-                await ctx.message.channel.send("```!?"+c+" <@member/messageid> *reactions\n<> Means optional and skippable```")
+                await ctx.channel.send("```!?"+c+" <@member/messageid> *reactions\n<> Means optional and skippable```")
             elif c == "clearreactions":
-                await ctx.message.channel.send("```!?"+c+" <@member/messageid/number of messages>\n<> Means optional\n```")
+                await ctx.channel.send("```!?"+c+" <@member/messageid/number of messages>\n<> Means optional\n```")
             elif c == "roll":
-                await ctx.message.channel.send("```!?"+c+" <<number of dice>d[how large of a dice][plus or minus some number to add to each roll]> <something to do to the total>\nExample: !?"+c+" 5d6+1 +1```")
+                await ctx.channel.send("```!?"+c+" <<number of dice>d[how large of a dice][plus or minus some number to add to each roll]> <something to do to the total>\nExample: !?"+c+" 5d6+1 +1```")
             elif c == "rps":
-                await ctx.message.channel.send("```!?"+c+" [Rock/Paper/Scissors]```")
+                await ctx.channel.send("```!?"+c+" [Rock/Paper/Scissors]```")
             elif c == "purge":
-                await ctx.message.channel.send("```!?"+c+" [number of messages]\nor for deleting a single user's messsages:\n!?"+c+" [@member/userid] [number of messages]\nor for deleting messages except by a certain user:\n!?"+c+" [@member/userid]! [number of messages]```")
+                await ctx.channel.send("```!?"+c+" [number of messages]\nor for deleting a single user's messsages:\n!?"+c+" [@member/userid] [number of messages]\nor for deleting messages except by a certain user:\n!?"+c+" [@member/userid]! [number of messages]```")
             elif c == "collectpoll":
-                await ctx.message.channel.send("```!?"+c+" channelid [number of messages that consist of the poll]```")
+                await ctx.channel.send("```!?"+c+" channelid [number of messages that consist of the poll]```")
             elif c == "reminder":
-                await ctx.message.channel.send("```!?"+c+" *[time][y/o/w/d/h/m/s] Reason for timer\n!?"+c+" 1y It has been a year haha!```")
+                await ctx.channel.send("```!?"+c+" *[time][y/o/w/d/h/m/s] Reason for timer\n!?"+c+" 1y It has been a year haha!```")
             elif c == "exclusivizeroles":
-                await ctx.message.channel.send("```!?"+c+" *roles\n!?"+c+" Chicks_and_Chickens Eggs```")
+                await ctx.channel.send("```!?"+c+" *roles\n!?"+c+" Chicks_and_Chickens Eggs```")
             elif c == "timedroles":
-                await ctx.message.channel.send("```!?"+c+" [time][y/o/w/d/h/m/s] role_name\n!?"+c+" 1y the_best_role```")
+                await ctx.channel.send("```!?"+c+" [time][y/o/w/d/h/m/s] role_name\n!?"+c+" 1y the_best_role```")
             elif c == "linkroles":
-                await ctx.message.channel.send("```!?"+c+" independantrole semi-dependantrole\n!?"+c+" squares rectangles_and_squares```")
+                await ctx.channel.send("```!?"+c+" independantrole semi-dependantrole\n!?"+c+" squares rectangles_and_squares```")
+            elif c == "privatechannels":
+                await ctx.channel.send("```!?"+c+" [enable or disable or [maximum amount of free creation channels] or category(by id or name) or role(by mention, name, or id)]\nor !?"+c+" [owner(by mention, full name, or id)] [channel(by id, name, or mention)] <category(by id or name)>\n<> means optional.```")
+            elif c == "pchan":
+                await ctx.channel.send("```!?"+c+" [invite or kick or setspectator] target(role or member(by id, mention or (full)name)) channel(by id, mention, or name)\n```")
+            elif c == "pchancreate":
+                await ctx.channel.send("```!?"+c+" channelname <category(by name or id)> <thing here if you want voice instead>\n```")
+            elif c == "pchandelete":
+                await ctx.channel.send("```!?"+c+" channel(by id, mention or name)\n```")
+            elif c == "pchanowned":
+                await ctx.channel.send("```!?"+c+"\n```")
             elif c == "emojify":
-                await ctx.message.channel.send("```!?"+c+" [message]```")
+                await ctx.channel.send("```!?"+c+" [message]```")
             elif c == "pfp":
-                await ctx.message.channel.send("```!?"+c+"```")
+                await ctx.channel.send("```!?"+c+"```")
             elif c == "rolecount":
-                await ctx.message.channel.send("```!?rolecount *roles```")
+                await ctx.channel.send("```!?rolecount *roles```")
             elif c == "dtm":
-                await ctx.message.channel.send("```!?directtomessage messageid <channelid or channelmention>(if outside sent channel)```")
+                await ctx.channel.send("```!?directtomessage messageid <channelid or channelmention>(if outside sent channel)```")
             elif c == "misc":
-                await ctx.message.channel.send("```!?roll rolls some dice\n!?rps plays rock paper scissors\n!?emojify emojifies a message\n!?pfp returns your profile picture\n!?calc returns the calculation results\n!?dtm generates a url for a message\n```")
-            else: await ctx.message.channel.send("!?"+c+" is not currently a command")
-        else: await ctx.message.channel.send("!?"+c+" is disabled")
+                await ctx.channel.send("```!?roll rolls some dice\n!?rps plays rock paper scissors\n!?emojify emojifies a message\n!?pfp returns your profile picture\n!?calc returns the calculation results\n!?dtm generates a url for a message\n```")
+            else: await ctx.channel.send("!?"+c+" is not currently a command")
+        else: await ctx.channel.send("!?"+c+" is disabled")
     else: base = True
     s = ""
     if base:
         s += "```!?help Displays this command\n!?help misc for misc commands\n!?collectpoll collects a poll\n!?rolecount counts the number of people in the specified role(s)\n"
-        if ctx.message.channel.permissions_for(ctx.message.author).manage_guild:
+        if ctx.channel.permissions_for(ctx.author).manage_guild:
             s += "!?enable enables commands\n!?disable disables commands\n"
-        if ctx.message.channel.permissions_for(ctx.message.author).add_reactions and ctx.message.channel.permissions_for(discord.utils.get(ctx.message.guild.members, id=447268676702437376)).add_reactions:
+        if ctx.channel.permissions_for(ctx.author).add_reactions and ctx.channel.permissions_for(discord.utils.get(ctx.guild.members, id=447268676702437376)).add_reactions:
             s += "!?react adds reactions to the most recent message\n"
-        if ctx.message.channel.permissions_for(ctx.message.author).manage_roles and ctx.message.channel.permissions_for(discord.utils.get(ctx.message.guild.members, id=447268676702437376)).manage_roles:
+        if ctx.channel.permissions_for(ctx.author).manage_roles and ctx.channel.permissions_for(discord.utils.get(ctx.guild.members, id=447268676702437376)).manage_roles:
             s += "!?uroles adds and or removes role(s) from a member\n!?timedroles adds roles based on their time in the guild\n"
-        if ctx.message.channel.permissions_for(ctx.message.author).manage_messages and ctx.message.channel.permissions_for(discord.utils.get(ctx.message.guild.members, id=447268676702437376)).manage_messages:
+        if ctx.channel.permissions_for(ctx.author).manage_messages and ctx.channel.permissions_for(discord.utils.get(ctx.guild.members, id=447268676702437376)).manage_messages:
             s += "!?purge purges the most recent n messages or n messages by a specified user checking only the most 100 recent messages\n!?pin pins the most recent message\n!?clearreactions clears the reactions of the most recent message\n"
         s += "!?help [command] for help on that command```"
-        await ctx.message.channel.send(s)
+        await ctx.channel.send(s)
 
 
 @client.command(pass_context=True)
 async def disable(ctx):
-    if ctx.message.channel.permissions_for(ctx.message.author).manage_guild:
+    if ctx.channel.permissions_for(ctx.author).manage_guild:
         file = open('servers.json', 'r+')
         servers = json.load(file)
-        sid = str(ctx.message.guild.id)
+        sid = str(ctx.guild.id)
         server = servers.get(sid) or []
         
         cmc = ctx.message.content.split(" ")[1:]
@@ -310,15 +322,15 @@ async def disable(ctx):
         servers.update({sid:server})
         file = open('servers.json', 'w+')
         file.write(json.dumps(servers))
-    else: await ctx.message.channel.send("You don't have permission to use that command :sweat_smile: ")
+    else: await ctx.channel.send("You don't have permission to use that command :sweat_smile: ")
     
 
 @client.command(pass_context=True)
 async def enable(ctx):
-    if ctx.message.channel.permissions_for(ctx.message.author).manage_guild:
+    if ctx.channel.permissions_for(ctx.author).manage_guild:
         file = open('servers.json', 'r+')
         servers = json.load(file)
-        sid = str(ctx.message.guild.id)
+        sid = str(ctx.guild.id)
         server = servers.get(sid)
         if not server: return
         cmc = ctx.message.content.split(" ")[1:]
@@ -334,7 +346,7 @@ async def enable(ctx):
         servers.update({sid:server})
         file = open('servers.json', 'w+')
         file.write(json.dumps(servers))
-    else: await ctx.message.channel.send("You don't have permission to use that command :sweat_smile: ")
+    else: await ctx.channel.send("You don't have permission to use that command :sweat_smile: ")
     
 
 @client.command(pass_context=True)
@@ -354,16 +366,16 @@ async def uroles(ctx):
             
 @client.command(pass_context = True)
 async def pin(ctx):
-    if ctx.message.channel.permissions_for(ctx.message.author).manage_messages:
+    if ctx.channel.permissions_for(ctx.author).manage_messages:
         pinned = False;
         if len(ctx.message.content.split(" ")) > 1:
             mid = ctx.message.content.split(" ")[1]
             if mid.isdigit():
                 if int(mid) > 10000:
-                    await client.pin_message(await ctx.message.channel.get_message(mid))
+                    await client.pin_message(await ctx.channel.get_message(mid))
                     await ctx.message.delete()
                     return
-        async for x in ctx.message.channel.history():
+        async for x in ctx.channel.history():
             if ctx.message.mentions:
                 if not x.content.startswith("!?pin") and x.author == ctx.message.mentions[0]:
                     await client.pin_message(x)
@@ -374,14 +386,14 @@ async def pin(ctx):
                     await client.pin_message(x)
                     pinned = True
                     break
-        if not pinned: await ctx.message.channel.send("The user you are trying to pin is not recent enough or does not exist.")
-    else: await ctx.message.channel.send("You don't have permission to use that command :sweat_smile: ")
+        if not pinned: await ctx.channel.send("The user you are trying to pin is not recent enough or does not exist.")
+    else: await ctx.channel.send("You don't have permission to use that command :sweat_smile: ")
     await ctx.message.delete()
 
 
 @client.command(pass_context = True)
 async def react(ctx):
-    if ctx.message.channel.permissions_for(ctx.message.author).add_reactions:
+    if ctx.channel.permissions_for(ctx.author).add_reactions:
         emojdup = [discord.utils.get(client.emojis, name="a_", id=448623901027860500), discord.utils.get(client.emojis, name="a_", id=485644541567959040), discord.utils.get(client.emojis, name="a_", id=448623554292875266), u'🅰', discord.utils.get(client.emojis, name="b_", id=448623288177000448), u'🅱', discord.utils.get(client.emojis, name="c_", id=448623288185257994), discord.utils.get(client.emojis, name="c_", id=448623554582282240), discord.utils.get(client.emojis, name="d_", id=448623287782604801), discord.utils.get(client.emojis, name="d_", id=448623900834922500), discord.utils.get(client.emojis, name="d_", id=448623554611773440), discord.utils.get(client.emojis, name="e_", id=448623554582282260), discord.utils.get(client.emojis, name="e_", id=448623980753190913), discord.utils.get(client.emojis, name="e_", id=448623288445435914), discord.utils.get(client.emojis, name="e_", id=448623900889186317), discord.utils.get(client.emojis, name="f_", id=448623288189714442), discord.utils.get(client.emojis, name="f_", id=448623554582544384), discord.utils.get(client.emojis, name="g_", id=448623554615836673), discord.utils.get(client.emojis, name="g_", id=448623288109891585), discord.utils.get(client.emojis, name="h_", id=448623554544664586), discord.utils.get(client.emojis, name="h_", id=448623288214880296), u'♓', discord.utils.get(client.emojis, name="i_", id=448623901040443392), discord.utils.get(client.emojis, name="i_", id=448623288277532692), discord.utils.get(client.emojis, name="i_", id=448623554611642368), u'ℹ', discord.utils.get(client.emojis, name="j_", id=448623287833198603), discord.utils.get(client.emojis, name="k_", id=448623288193646609), discord.utils.get(client.emojis, name="l_", id=448623901040443402), discord.utils.get(client.emojis, name="l_", id=448623554670362625), discord.utils.get(client.emojis, name="l_", id=448623288210686003), u'Ⓜ', u'♏', u'♍', discord.utils.get(client.emojis, name="n_", id=448623554628419584), discord.utils.get(client.emojis, name="n_", id=448623288197840926), u'♑', discord.utils.get(client.emojis, name="o_", id=448623288487247882), u'🅾', u'⭕', discord.utils.get(client.emojis, name="p_", id=448623288466276382), u'🅿', discord.utils.get(client.emojis, name="q_", id=448623288281726996), discord.utils.get(client.emojis, name="r_", id=448625035985420289), discord.utils.get(client.emojis, name="r_", id=448623287929667596), discord.utils.get(client.emojis, name="r_", id=448623900771745793), discord.utils.get(client.emojis, name="s_", id=448623554590932992), discord.utils.get(client.emojis, name="s_", id=448623288210554880), discord.utils.get(client.emojis, name="s_", id=448623901044375552), discord.utils.get(client.emojis, name="t_", id=448623287866490881), discord.utils.get(client.emojis, name="t_", id=448623901220536331), discord.utils.get(client.emojis, name="t_", id=448623980849659926), discord.utils.get(client.emojis, name="t_", id=448623554498527233), discord.utils.get(client.emojis, name="u_", id=448623554590933002), discord.utils.get(client.emojis, name="u_", id=448623288470601738), discord.utils.get(client.emojis, name="v_", id=448623288055496725), u'♈', discord.utils.get(client.emojis, name="w_", id=448623288214749187), discord.utils.get(client.emojis, name="w_", id=448623554519629825), '❎', '❌', discord.utils.get(client.emojis, name="y_", id=448623554636808193), discord.utils.get(client.emojis, name="y_", id=448623288210554900), discord.utils.get(client.emojis, name="z_", id=448623288512675840), u'❕', u'❔', u'✳', u'✖']
         doub = ["ab", "cl", "id", "ng", "ok", "vs", "wc", "!!", "!?", "new", "sos", "cool", "free"]
         dup = ["a", "a", "a", "a", "b", "b", "c", "c", "d", "d", "d", "e", "e", "e", "e", "f", "f", "g", "g", "h", "h", "h", "i", "i", "i", "i", "j", "k", "l", "l", "l", "m", "m", "m", "n", "n", "n", "o", "o", "o", "p", "p", "q", "r", "r", "r", "s", "s", "s", "t", "t", "t", "t", "u", "u", "v", "v", "w", "w", "x", "x", "y", "y", "z", "!", "?", "*", "*"]
@@ -400,9 +412,9 @@ async def react(ctx):
             num = 2
             ment = True
             mem = ctx.message.mentions[0]
-        async for x in ctx.message.channel.history():
+        async for x in ctx.channel.history():
             if mid:
-                x = await ctx.message.channel.get_message(com[1])
+                x = await ctx.channel.get_message(com[1])
             if (not x.content.startswith("!?react") and (not ment or x.author == mem)) or mid:
                 emoji = []
                 try:
@@ -471,14 +483,14 @@ async def react(ctx):
                 for y in emoji:
                     await x.add_reaction(y)
                 return
-        await ctx.message.channel.send("The user you are trying to react to is not recent enough or does not exist.")
+        await ctx.channel.send("The user you are trying to react to is not recent enough or does not exist.")
         await ctx.message.delete()
-    else: await ctx.message.channel.send("You don't have permission to use that command :sweat_smile: ")
+    else: await ctx.channel.send("You don't have permission to use that command :sweat_smile: ")
     
     
 @client.command(pass_context = True)
 async def clearreactions(ctx):
-    if ctx.message.channel.permissions_for(ctx.message.author).manage_messages:
+    if ctx.channel.permissions_for(ctx.author).manage_messages:
         com = ctx.message.content.split(" ")
         mid = ""
         mem = ""
@@ -486,7 +498,7 @@ async def clearreactions(ctx):
             mid = com[1]
         if mid.isdigit():
             if int(mid) > 10000:
-                await ctx.message.channel.get_message(mid).clear_reactions()
+                await ctx.channel.get_message(mid).clear_reactions()
                 await ctx.message.delete()
                 return
             else:
@@ -495,19 +507,19 @@ async def clearreactions(ctx):
             mem = ctx.message.mentions[0]
         else: mid = 0
         num = 0
-        async for x in ctx.message.channel.history():
+        async for x in ctx.channel.history():
             if not x.content == "!?clearreactions" and x.reactions and (x.author == mem or not mem):
                 num += 1
                 await x.clear_reactions()
                 if num >= mid or not mid:
                     break
-    else: await ctx.message.channel.send("You don't have permission to use that command :sweat_smile: ")
+    else: await ctx.channel.send("You don't have permission to use that command :sweat_smile: ")
     await ctx.message.delete()
     
 
 @client.command(pass_context = True)
 async def purge(ctx):
-    if ctx.message.channel.permissions_for(ctx.message.author).manage_messages:
+    if ctx.channel.permissions_for(ctx.author).manage_messages:
         cmc = ctx.message.content.split(" ");
         isufi = False
         uid = 0
@@ -531,32 +543,32 @@ async def purge(ctx):
             if arg2.isdigit():
                 limit = int(arg2) + 1
             if isufi:
-                if not ctx.message.author == ctx.message.guild.get_member(uid):
+                if not ctx.author == ctx.guild.get_member(uid):
                     await ctx.message.delete()
                     limit -= 1
             else:
-                if not ctx.message.author == ctx.message.mentions[0]:
+                if not ctx.author == ctx.message.mentions[0]:
                     await ctx.message.delete()
                     limit -= 1
         elif cmc[1].isdigit():
             limit = int(cmc[1]) + 1
         else:
-            await ctx.message.channel.send("No number of messages nor user specified")
+            await ctx.channel.send("No number of messages nor user specified")
             return
         prevlimit = -552
         while limit > 0:
             num = 0
             mess = []
-            async for x in ctx.message.channel.history():
+            async for x in ctx.channel.history():
                 t = (datetime.utcnow() - x.created_at).total_seconds()
                 if t < 1200000 and not x.pinned:
                     if isufi:
-                        if x.author == ctx.message.guild.get_member(uid) and not abtu:
+                        if x.author == ctx.guild.get_member(uid) and not abtu:
                             mess.append(x)
                             num += 1
                             if num >= limit:
                                 break
-                        elif not x.author == ctx.message.guild.get_member(uid) and abtu:
+                        elif not x.author == ctx.guild.get_member(uid) and abtu:
                             mess.append(x)
                             num += 1
                             if num >= limit:
@@ -584,13 +596,13 @@ async def purge(ctx):
                         limit = 0
                         break
             if len(mess) > 1:
-                await ctx.message.channel.delete_messages(mess)
+                await ctx.channel.delete_messages(mess)
             elif len(mess) == 1:
                 await x.delete()
             limit -= num
             if prevlimit == limit: break
             prevlimit = limit
-    else: await ctx.message.channel.send("You don't have permission to use that command :sweat_smile: ")
+    else: await ctx.channel.send("You don't have permission to use that command :sweat_smile: ")
     
 
 @client.command(pass_context = True)
@@ -615,7 +627,7 @@ async def collectpoll(ctx):
                 if not dic:
                     s += "\n" + str(y.emoji) + ": " + str(y.count-1)
             if not dic:
-                await ctx.message.channel.send(s)
+                await ctx.channel.send(s)
             if i >= num:
                 break
     if dic:
@@ -623,7 +635,7 @@ async def collectpoll(ctx):
             for k in sorted(dic, key=dic.get, reverse=True):
                 #s += k + ": " + str(dic[k]) + "\n"
                 file.write(str(k.replace(",", "").encode("utf-8")) + "," + str(dic[k]) + "\n")
-        await client.send_file(ctx.message.channel, "poll.csv")
+        await client.send_file(ctx.channel, "poll.csv")
 
 
 @client.command(pass_context = True)
@@ -641,7 +653,7 @@ async def reminder(ctx):
     if len(tim) > 0:
         num += float(tim)
     
-    auth = ctx.message.author.mention
+    auth = ctx.author.mention
     await ctx.message.delete()
     await asyncio.sleep(num)
     rem = ""
@@ -664,26 +676,26 @@ async def reminder(ctx):
     if secs > 0:
         fortim += str(secs) + 's'
     
-    await ctx.message.channel.send(auth + ", your reminder is ready with reason: " + '"' + rem.replace("\\", "") + '"' + "```The command invocation message for this message was sent " + fortim + " ago.```")
+    await ctx.channel.send(auth + ", your reminder is ready with reason: " + '"' + rem.replace("\\", "") + '"' + "```The command invocation message for this message was sent " + fortim + " ago.```")
 
 
 @client.command(pass_context = True)
 async def exclusivizeroles(ctx):
-    if ctx.message.channel.permissions_for(ctx.message.author).manage_roles:
+    if ctx.channel.permissions_for(ctx.author).manage_roles:
         cmcs = ctx.message.content.split(" ")[1:]
         exroles = []
         strexroles = []
         for x in cmcs:
-            r = discord.utils.get(ctx.message.guild.roles, name=x.replace("_", " "))
+            r = discord.utils.get(ctx.guild.roles, name=x.replace("_", " "))
             if not r:
-                await ctx.message.channel.send(x + " is not recognized as a valid role.")
+                await ctx.channel.send(x + " is not recognized as a valid role.")
                 return
             else: exroles.append(r)
             strexroles.append(x.replace("_", " "))
 
         file = open('exclusiveroles.json', 'r+')
         guilds = json.load(file)
-        sid = str(ctx.message.guild.id)
+        sid = str(ctx.guild.id)
         guild = guilds.get(sid) or []
         s = ""
         add = True
@@ -699,14 +711,14 @@ async def exclusivizeroles(ctx):
         guilds.update({sid:guild})
         file = open('exclusiveroles.json', 'w+')
         file.write(json.dumps(guilds))
-    else: await ctx.message.channel.send("You don't have permission to use that command :sweat_smile: ")
+    else: await ctx.channel.send("You don't have permission to use that command :sweat_smile: ")
 
         
 @client.command(pass_context = True)
 async def timedroles(ctx):
-    if ctx.message.channel.permissions_for(ctx.message.author).manage_roles:
+    if ctx.channel.permissions_for(ctx.author).manage_roles:
         cmc = ctx.message.content.split(" ")
-        ml = ctx.message.guild.members
+        ml = ctx.guild.members
         rta = []
         rtr = []
         num = float(cmc[1][:-1])
@@ -739,18 +751,18 @@ async def timedroles(ctx):
                         if r:
                             rta.append(r)
                 await hm.updateroles(ctx, rta, rtr, client, roles, specuser=m)
-    else: await ctx.message.channel.send("You don't have permission to use that command :sweat_smile: ")
+    else: await ctx.channel.send("You don't have permission to use that command :sweat_smile: ")
 
 
 @client.command(pass_context = True)
 async def linkroles(ctx):
-    if ctx.message.channel.permissions_for(ctx.message.author).manage_roles:
+    if ctx.channel.permissions_for(ctx.author).manage_roles:
         cmcs = ctx.message.content.split(" ")[1:]
-        rec = discord.utils.get(ctx.message.guild.roles, name=cmcs[0].replace("_", " "))
-        torec = discord.utils.get(ctx.message.guild.roles, name=cmcs[1].replace("_", " "))
-        file = open('guilds.json', 'r+')
+        rec = discord.utils.get(ctx.guild.roles, name=cmcs[0].replace("_", " "))
+        torec = discord.utils.get(ctx.guild.roles, name=cmcs[1].replace("_", " "))
+        file = open('linkroles.json', 'r+')
         guilds = json.load(file)
-        sid = str(ctx.message.guild.id)
+        sid = str(ctx.guild.id)
         guild = guilds.get(sid) or []
         add = True
         for x in guild:
@@ -760,34 +772,331 @@ async def linkroles(ctx):
         if add:
             guild.add(rec.name + ":" + torec.name)
         guilds.update({sid:guild})
-        file = open('exclusiveroles.json', 'w+')
+        file = open('linkroles.json', 'w+')
         file.write(json.dumps(guilds))
-    else: await ctx.message.channel.send("You don't have permission to use that command :sweat_smile: ")
+    else: await ctx.channel.send("You don't have permission to use that command :sweat_smile: ")
 
 
 @client.command(pass_context = True)
 async def privatechannels(ctx):
-    if ctx.message.channel.permissions_for(ctx.message.author).manage_guild and ctx.message.channel.permissions_for(ctx.message.author).manage_channels:
-        if not ctx.message.channel.permissions_for(client.get_user_info(447268676702437376)).manage_channels:
-            ctx.message.channel.send("I require the manage channels permission for this.")
+    if ctx.channel.permissions_for(ctx.author).manage_guild and ctx.channel.permissions_for(ctx.author).manage_channels:
+        if not ctx.channel.permissions_for(discord.utils.get(ctx.guild.members, id=447268676702437376)).manage_channels:
+            await ctx.channel.send("I require the manage channels permission for this.")
             return
-        cmcs = ctx.message.content.split(" ")[1:]
-        if not cmcs:
-            await ctx.message.channel.send("Help message")
-        elif len(cmcs) == 1:
-            if cmcs[0].lower() == "enable":
-                ""
-            if cmcs[0].lower() == "disable":
-                ""
-        elif len(cmcs) == 2:
-            ""
-    else: await ctx.message.channel.send("You don't have permission to use that command :sweat_smile: ")
+        cmc = ctx.message.content.split(" ")[1:]
+        if len(cmc) == 0:
+            ctx.message.content = "!?help privatechannels"
+            await client.process_commands(ctx.message)
+            return
+        file = open('privatechannels.json', 'r+')
+        PCs = json.load(file)
+        gid = str(ctx.guild.id)
+        guildPC = PCs.get(gid) or {}
+            
+        if len(cmc) == 1:
+            if cmc[0].isdigit():
+                cat = discord.utils.get(ctx.guild.categories, id=int(cmc[0]))
+                role = discord.utils.get(ctx.guild.roles, id=int(cmc[0]))
+            else:
+                cat = discord.utils.get(ctx.guild.categories, name=cmc[0])
+                role = discord.utils.get(ctx.guild.roles, name=cmc[0]) or discord.utils.get(ctx.guild.roles, mention=cmc[0])
+            if cat:
+                cid = str(cat.id)
+                if guildPC.get(cid):
+                    guildPC.update({cid: False})
+                    await ctx.channel.send("Succesfully disallowed free creation in " + cat.name + " even if freecreation is enabled.")
+                else:
+                    guildPC.update({cid: True})
+                    await ctx.channel.send("Succesfully allowed free creation in " + cat.name + " while freecreation is enabled.")
+            elif role:
+                rid = str(role.id)
+                if guildPC.get(rid):
+                    guildPC.update({rid: False})
+                    await ctx.channel.send("Succesfully disallowed free creation by " + role.name + " even if freecreation is enabled.")
+                else:
+                    guildPC.update({rid: True})
+                    await ctx.channel.send("Succesfully allowed free creation by " + role.name + " even if freecreation is disabled")
+            else:
+                if cmc[0].lower() == 'enable':
+                    guildPC.update({'freecreation': True})
+                    await ctx.channel.send("Succesfully enabled free creation of private channels")
+                elif cmc[0].lower() == 'disable':
+                    guildPC.update({'freecreation': False})
+                    await ctx.channel.send("Succesfully disabled free creation of private channels")
+                elif cmc[0].isdigit():
+                    if int(cmc[0]) > 0 and int(cmc[0]) <= 100:
+                        guildPC.update({'max': int(cmc[0])})
+                    else:
+                        await ctx.channel.send("Invalid maximum free creations")
+                else: 
+                    ctx.message.content = "!?help privatechannels"
+                    await client.process_commands(ctx.message)
+                    return
+        elif len(cmc) == 2 or len(cmc) == 3 or len(cmc) == 4:
+            if '#' in cmc[0]:
+                owner = discord.utils.get(ctx.guild.members, name=cmc[0].split('#')[0], discriminator=cmc[0].split('#')[1])
+            else:
+                owner = discord.utils.get(ctx.guild.members, mention=cmc[0]) or discord.utils.get(ctx.guild.members, id=int(cmc[0]))
+            oid = str(owner.id)
+            if len(cmc[1]) > 100:
+                    await ctx.channel.send("Channel name too long")
+                    return
+            if cmc[1].isdigit():
+                chan = discord.utils.get(ctx.guild.channels, id=int(cmc[1]))
+                if not chan:
+                    await ctx.channel.send("Invalid channelid")
+                    return   
+            elif len(cmc) == 2:
+                chan = await hm.createpc(ctx, owner)
+            elif len(cmc) == 3:
+                cmc[2] = cmc[2].replace('[space]', ' ')
+                chan = await hm.createpc(ctx, owner, cmc[2])
+            elif len(cmc) == 4:
+                cmc[2] = cmc[2].replace('[space]', ' ')
+                chan = await hm.createpc(ctx, owner, cmc[2], True)
+            chid = str(chan.id)
+            chanlist = guildPC.get(oid) or []
+            if chid not in chanlist:
+                chanlist.append(chid)
+                guildPC.update({oid: chanlist})
+                await ctx.channel.send("Added owner")
+            elif chid in chanlist:
+                chanlist.remove(chid)
+                guildPC.update({oid: chanlist})
+                await ctx.channel.send("Removed owner")
+        else: 
+            ctx.message.content = "!?help privatechannels"
+            await client.process_commands(ctx.message)
+            return
+        
+        PCs.update({gid:guildPC})
+        file = open('privatechannels.json', 'w+')
+        file.write(json.dumps(PCs))
+    else: await ctx.channel.send("You don't have permission to use that command :sweat_smile: ")
 
+
+@client.command(pass_context = True)
+async def pchan(ctx):
+    if not ctx.channel.permissions_for(discord.utils.get(ctx.guild.members, id=447268676702437376)).manage_channels:
+        await ctx.channel.send("I require the manage channels permission for this.")
+        return
+    cmc = ctx.message.content.split(" ")[1:]
+    if len(cmc) == 0:
+        ctx.message.content = "!?help pchan"
+        await client.process_commands(ctx.message)
+        return
+    file = open('privatechannels.json', 'r+')
+    PCs = json.load(file)
+    gid = str(ctx.guild.id)
+    guildPC = PCs.get(gid)
+    if not guildPC:
+        await ctx.channel.send("Requires !?privatechannels to be used first.")
+        return
+    
+    if cmc[0].lower() == "create":
+        ctx.message.content = "!?help pchancreate"
+        await client.process_commands(ctx.message)
+        return
+    
+    if '#' in cmc[1]:
+        target = discord.utils.get(ctx.guild.members, name=cmc[1].split('#')[0], discriminator=cmc[1].split('#')[1])
+    elif cmc[1].isdigit():
+        target = discord.utils.get(ctx.guild.members, id=int(cmc[1])) or discord.utils.get(ctx.guild.roles, id=int(cmc[1]))
+    else:
+        target = discord.utils.get(ctx.guild.members, mention=cmc[1]) or discord.utils.get(ctx.guild.roles, mention=cmc[1]) or discord.utils.get(ctx.guild.roles, name=cmc[1])
+        
+    chan = None
+    if len(cmc) == 3:
+        if cmc[2].isdigit():
+            chan = discord.utils.get(ctx.guild.channels, id=int(cmc[2]))
+        elif not chan:
+            chan = discord.utils.get(ctx.guild.channels, mention=cmc[2]) or discord.utils.get(ctx.guild.channels, name=cmc[2].replace('[space]', ' '))
+    if not chan:
+        chan = ctx.channel
+    chid = str(chan.id)
+    
+    chans = guildPC.get(str(ctx.author.id)) or []
+    if not chid in chans:
+        await ctx.channel.send("You are not the owner of this channel")
+        return
+    
+    if cmc[0].lower() == "invite":
+        overwrite = discord.PermissionOverwrite()
+        overwrite.read_messages = True
+    elif cmc[0].lower() == "kick":
+        overwrite = discord.PermissionOverwrite()
+        overwrite.read_messages = False
+    elif cmc[0].lower() == "setspectator":
+        overwrite = discord.PermissionOverwrite()
+        overwrite.read_messages = True
+        overwrite.send_messages = False
+        overwrite.connect = False
+    elif cmc[0].lower() == "setlistener":
+        overwrite = discord.PermissionOverwrite()
+        overwrite.read_messages = True
+        overwrite.send_messages = False
+        overwrite.connect = True
+        overwrite.speak = False
+    else:
+        ctx.message.content = "!?help pchan"
+        await client.process_commands(ctx.message)
+        return
+    await chan.set_permissions(target, overwrite=overwrite)
+
+
+@client.command(pass_context = True)
+async def pchancreate(ctx):
+    if not ctx.channel.permissions_for(discord.utils.get(ctx.guild.members, id=447268676702437376)).manage_channels:
+        await ctx.channel.send("I require the manage channels permission for this.")
+        return
+    cmc = ctx.message.content.split(" ")[1:]
+    if len(cmc) == 0:
+        ctx.message.content = "!?help pchancreate"
+        await client.process_commands(ctx.message)
+        return
+    file = open('privatechannels.json', 'r+')
+    PCs = json.load(file)
+    gid = str(ctx.guild.id)
+    guildPC = PCs.get(gid)
+    
+    testfc = True
+    deny = False
+    for x in ctx.author.roles:
+        rid = str(x.id)
+        if guildPC.get(rid):
+            testfc = False
+            deny = False
+            break
+        elif guildPC.get(rid) == False:
+            deny = True
+        
+    if deny == True:
+        await ctx.channel.send("You have a role that is disallowed from creating channels. Free creation may also be disabled.")
+        return
+    if not guildPC.get("freecreation") and testfc:
+        await ctx.channel.send("Free creation in this server is disabled")
+        return
+    
+    chan = None
+    if cmc[0].isdigit():
+        chan = discord.utils.get(ctx.guild.channels, id=int(cmc[0]))
+    elif not chan:
+        chan = discord.utils.get(ctx.guild.channels, mention=cmc[0]) or discord.utils.get(ctx.guild.channels, name=cmc[0])
+    if chan:
+        await ctx.channel.send("Channel already exists")
+        return
+    owned = guildPC.get(str(ctx.author.id))
+    maxi = guildPC.get('max') or 1
+    if owned:
+        if len(owned) >= maxi:
+            await ctx.channel.send("You can't create anymore channels")
+            return
+    if len(cmc) > 1:
+        cmc[1] = cmc[1].replace('[space]', ' ')
+        cat = discord.utils.get(ctx.guild.categories, name=cmc[1])
+        if not cat and cmc[1].isdigit():
+            cat = discord.utils.get(ctx.guild.categories, id=int(cmc[1]))
+        if not cat:
+            await ctx.channel.send("Category doesn't exist")
+            return
+        elif not guildPC.get(str(cat.id)) and not cat.name == "private channels":
+            await ctx.channel.send("Free creation in this category is disabled")
+            return
+        else:
+            if len(cmc) > 2:
+                cmc[2] = cmc[2].replace('[space]', ' ')
+                chan = await hm.createpc(ctx, ctx.author, str(cat.id), chin=0, voice=True)
+            else:
+                chan = await hm.createpc(ctx, ctx.author, str(cat.id), chin=0)
+    
+    else:
+        chan = await hm.createpc(ctx, ctx.author, chin=0)
+    
+    
+        
+    chid = str(chan.id)
+    aid = str(ctx.author.id)
+    chans = guildPC.get(aid) or []
+    chans.append(chid)
+    guildPC.update({aid:chans})
+    
+    PCs.update({gid:guildPC})
+    file = open('privatechannels.json', 'w+')
+    file.write(json.dumps(PCs))
+    
+@client.command(pass_context = True)
+async def pchandelete(ctx):
+    if not ctx.channel.permissions_for(discord.utils.get(ctx.guild.members, id=447268676702437376)).manage_channels:
+        await ctx.channel.send("I require the manage channels permission for this.")
+        return
+    cmc = ctx.message.content.split(" ")[1:]
+    if len(cmc) == 0:
+        ctx.message.content = "!?help pchandelete"
+        await client.process_commands(ctx.message)
+        return
+    file = open('privatechannels.json', 'r+')
+    PCs = json.load(file)
+    gid = str(ctx.guild.id)
+    guildPC = PCs.get(gid)
+    #get channel
+    chan = None
+    if cmc[0].isdigit():
+        chan = discord.utils.get(ctx.guild.channels, id=int(cmc[0]))
+    elif not chan:
+        chan = discord.utils.get(ctx.guild.channels, mention=cmc[0]) or discord.utils.get(ctx.guild.channels, name=cmc[0])
+    if not chan:
+        await ctx.channel.send("Channel doesn't exist")
+        return
+    chid = str(chan.id)
+    if not chid in guildPC.get(str(ctx.author.id)):
+        await ctx.channel.send("You are not an owner of this channel")
+        return
+    #see how many 'own' that channel
+    owns = 0
+    for k, v in guildPC.items():
+        if not k.isdigit() or not type(v) == list:
+            continue
+        for x in v:
+            if x == chid:
+                owns += 1
+                break
+    if owns > 2:
+        await ctx.channel.send("Too many owners to delete. Ask an admin if they'll delete it for you.")
+        return
+    #delete the channel
+    await chan.delete(reason="Owner said so")
+    await ctx.channel.send("Channel deleted")
+    chans = guildPC.get(str(ctx.author.id))
+    chans.remove(chid)
+    guildPC.update({str(ctx.author.id):chans})
+    
+    PCs.update({gid:guildPC})
+    file = open('privatechannels.json', 'w+')
+    file.write(json.dumps(PCs))
+    
+@client.command(pass_context = True)
+async def pchanowned(ctx):
+    file = open('privatechannels.json', 'r+')
+    PCs = json.load(file)
+    gid = str(ctx.guild.id)
+    guildPC = PCs.get(gid)
+    chans = guildPC.get(str(ctx.author.id))
+    
+    if not chans:
+        await ctx.channel.send("You don't own any channels in this server/guild.")
+        return
+    s = "Channels you own in this server/guild: "
+    for x in chans:
+        chan = discord.utils.get(ctx.guild.channels, id=int(x))
+        s += '\n' + chan.mention + ' '
+    await ctx.channel.send(s)
+        
+        
 @client.command(pass_context = True)
 async def roll(ctx):
     cmcs = ctx.message.content.split(" ")[1:]
     if len(cmcs) == 0:
-        await ctx.message.channel.send("You rolled a " + str(random.randint(1, 6)) + ".")
+        await ctx.channel.send("You rolled a " + str(random.randint(1, 6)) + ".")
     else:
         nsp = NumericStringParser()
         nums = cmcs[0].split("d")
@@ -809,7 +1118,7 @@ async def roll(ctx):
         cl = 1994
         mes = 1
         if dice > 1000//len(str(n)):
-            await ctx.message.channel.send("Too many dice")
+            await ctx.channel.send("Too many dice")
             return
         for _11 in range(dice):
             rand = random.randint(1, n) + cha
@@ -821,14 +1130,14 @@ async def roll(ctx):
             else:
                 s += str(total)
         if dice < 2:
-            await ctx.message.channel.send("You rolled a " + s.strip() + ".")
+            await ctx.channel.send("You rolled a " + s.strip() + ".")
         elif len(s) <= mes * cl:
             while(len(s) > cl):
-                await ctx.message.channel.send("```" + s[:cl] + "```")
+                await ctx.channel.send("```" + s[:cl] + "```")
                 s = s[cl:]
-            await ctx.message.channel.send("```" + s + "```")
+            await ctx.channel.send("```" + s + "```")
         else:
-            await ctx.message.channel.send("```" + s[:cl] + "```")
+            await ctx.channel.send("```" + s[:cl] + "```")
 
 
 @client.command(pass_context = True)
@@ -864,12 +1173,12 @@ async def rps(ctx):
             if rand == 0: win = cmcs + " wins!"
             elif rand == 2: win = ic + " wins!"
             else: win = "It's a tie!"
-    await ctx.message.channel.send("You chose " + cmcs + ". I chose " + ic + ".\n" + win)
+    await ctx.channel.send("You chose " + cmcs + ". I chose " + ic + ".\n" + win)
     
 
 @client.command(pass_context = True)
 async def emojify(ctx):
-    author = ctx.message.author.name
+    author = ctx.author.name
     if author == "GoodAtBeingDerpy":
         author = "GABD"
     if len(author) > 8:
@@ -888,7 +1197,6 @@ async def emojify(ctx):
     m = re.findall(p, stc)
     for x in m:
         emojimen.append(x)
-        print(x)
         stc = stc.replace(x, "⡉")
     emojimen1 = iter(emojimen)
     
@@ -925,15 +1233,15 @@ async def emojify(ctx):
         else: s += x
     s = s.replace("​​​", "​").replace("​​", "​").replace("​\n", "\n").replace("\n​", "\n").strip()
     await ctx.message.delete()
-    await ctx.message.channel.send(s[:2000])
+    await ctx.channel.send(s[:2000])
     
     
 @client.command(pass_context = True)
 async def pfp(ctx):
     if ctx.message.mentions:
         user = ctx.message.mentions[0]
-    else: user = ctx.message.author
-    await ctx.message.channel.send(user.avatar_url)
+    else: user = ctx.author
+    await ctx.channel.send(user.avatar_url)
     
     
 @client.command(pass_context = True)
@@ -944,25 +1252,25 @@ async def rolecount(ctx):
         role = discord.utils.get(roles, name=x.replace("_", " "))
         if role:
             num = 0
-            for y in ctx.message.guild.members:
+            for y in ctx.guild.members:
                 if role in y.roles:
                     num += 1
             s += "\n" + x.replace("_", " ") + ": " + str(num)
-    await ctx.message.channel.send(s)
+    await ctx.channel.send(s)
 
 
 @client.command(pass_context = True)
 async def calc(ctx):
     cmc = ctx.message.content.split(" ", 1)[1].replace(",", "")
     nsp = NumericStringParser()
-    await ctx.message.channel.send("{:,}".format(nsp.eval(hm.wordnumtonum(cmc, str(ctx.message.author.id)))))
+    await ctx.channel.send("{:,}".format(nsp.eval(hm.wordnumtonum(cmc, str(ctx.author.id)))))
 
 
 @client.command(pass_context = True)
 async def wa(ctx):
     cmc = ctx.message.content.split(' ', 1)[1]
     r = requests.get('http://api.wolframalpha.com/v1/result?appid=U7QXJX-VRAQKV8L5A&i=' + cmc)
-    await ctx.message.channel.send(r.text)
+    await ctx.channel.send(r.text)
 
 
 @client.command(pass_context = True)
@@ -970,9 +1278,9 @@ async def palindrome(ctx):
     cmc = ctx.message.content.split(' ', 1)[1].lower().replace(' ', '')
     for x, y in zip(cmc, cmc[::-1]):
         if not x == y:
-            await ctx.message.channel.send("No")
+            await ctx.channel.send("No")
             return
-    await ctx.message.channel.send("Yes")
+    await ctx.channel.send("Yes")
     
 
 @client.command(pass_context = True)
@@ -980,17 +1288,27 @@ async def dtm(ctx):
     cmc = ctx.message.content.split(" ", 2)[1:]
     if len(cmc) == 2:
         if cmc[1].isdigit():
-            await ctx.message.channel.send((await client.get_channel(int(cmc[1])).get_message(int(cmc[0]))).jump_url)
+            await ctx.channel.send((await client.get_channel(int(cmc[1])).get_message(int(cmc[0]))).jump_url)
         else: 
-            await ctx.message.channel.send((await discord.utils.get(client.get_all_channels(), mention=cmc[1]).get_message(int(cmc[0]))).jump_url)
+            await ctx.channel.send((await discord.utils.get(client.get_all_channels(), mention=cmc[1]).get_message(int(cmc[0]))).jump_url)
     elif len(cmc) == 1:
-        await ctx.message.channel.send((await ctx.message.channel.get_message(int(cmc[0]))).jump_url)
+        await ctx.channel.send((await ctx.channel.get_message(int(cmc[0]))).jump_url)
     await ctx.message.delete()
     
     
 @client.command(pass_context = True)
+async def morse(ctx):
+    cmc = ctx.message.content.replace(' / ', '  ').upper().split(' ', 1)[1]
+    for x in cmc:
+        if not x == '.' and not x == '-' and not x == ' ':
+            await ctx.channel.send('```' + hm.texttomorse(cmc) + '```')
+            return
+    await ctx.channel.send('```' + hm.morsetotext(cmc) + '```')
+    
+    
+@client.command(pass_context = True)
 async def killbot(ctx):
-    if str(ctx.message.author) == "Tiln#0416":
+    if str(ctx.author) == "Tiln#0416":
         await ctx.message.delete()
         await client.logout()
 

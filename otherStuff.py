@@ -6,7 +6,7 @@ Created on May 12, 2018
 
 import discord
 import json
-
+import asyncio
 
 class HelpMethods(object):
     # :a: :b: :information_source: :pisces: :m: :scorpio: :virgo: :capricorn: :o2: :o: :parking: :Aries: :negative_squared_cross_mark: :x: :grey_exclamation: :grey_question:
@@ -14,6 +14,8 @@ class HelpMethods(object):
     
     # :ab: :cl: :id: :ng: :ok: :vs: :wc: :bangbang: :interrobang: :new: :sos: :cool: :free: :10: 
     emojdoub = ['🆎', '🆑', '🆔', '🆖', '🆗', '🆚', '🚾', '‼', '⁉', '🆕', '🆘', '🆒', '🆓', '🔟']
+    texttomorse = {'A':'.-', 'B':'-...', 'C':'-.-.', 'D':'-..', 'E':'.', 'F':'..-.', 'G':'--.', 'H':'....', 'I':'..', 'J':'.---', 'K':'-.-', 'L':'.-..', 'M':'--', 'N':'-.', 'O':'---', 'P':'.--.', 'Q':'--.-', 'R':'.-.', 'S':'...', 'T':'-', 'U':'..-', 'V':'...-', 'W':'.--', 'X':'-..-', 'Y':'-.--', 'Z':'--..', '1':'.----', '2':'..---', '3':'...--', '4':'....-', '5':'.....', '6':'-....', '7':'--...', '8':'---..', '9':'----.', '0':'-----', ', ':'--..--', '.':'.-.-.-', '?':'..--..', '/':'-..-.', '-':'-....-', '(':'-.--.', ')':'-.--.-'}
+    
     
     def cmddisabled(self, sid, cmd):
         file = open('servers.json', 'r+')
@@ -55,6 +57,64 @@ class HelpMethods(object):
             else: await client.say('Please format it as ' + ctx.message.content.split(' ')[0] + ' @username role')
         else: await client.say("You don't have permission to use that command or that part of that command :sweat_smile: ")
         return False
+    
+    async def createpc(self, ctx, owner, catnid="private channels", chin=1, voice=False):
+        cmc = ctx.message.content.split(" ")[1:]
+        chan = discord.utils.get(ctx.guild.channels, name=cmc[chin]) or discord.utils.get(ctx.guild.channels, mention=cmc[chin])
+        if not chan:
+            cat = discord.utils.get(ctx.guild.categories, name=catnid)
+            if not cat and catnid.isdigit():
+                cat = discord.utils.get(ctx.guild.categories, id=int(catnid))
+            if not cat:
+                try:
+                    cat = await ctx.guild.create_category(catnid, reason="Setting up private channels")
+                except discord.HTTPException:
+                    await ctx.channel.send("Invalid category name.")
+                    return
+            overwrites = {ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False), owner:discord.PermissionOverwrite(read_messages=True, manage_messages=True, priority_speaker=True, move_members=True)}
+            for x in ctx.guild.roles:
+                if x.permissions.manage_channels:
+                    overwrites.update({x: discord.PermissionOverwrite(read_messages=True)})
+            try:
+                if voice:
+                    chan = await ctx.guild.create_voice_channel(cmc[chin], overwrites=overwrites, category=cat, reason="Owner: " + str(owner) + " by command of: " + str(ctx.author) + ".")
+                else:
+                    chan = await ctx.guild.create_text_channel(cmc[chin], overwrites=overwrites, category=cat, reason="Owner: " + str(owner) + " by command of: " + str(ctx.author) + ".")
+                await ctx.channel.send("Channel created")
+            except discord.HTTPException:
+                    await ctx.channel.send("Invalid channel name.")
+                    return
+        return chan
+    
+    async def autocleanpcdb(self, client):
+        ""
+        while(True):
+            file = open('privatechannels.json', 'r+')
+            PCs = json.load(file)
+            file.close()
+            
+            for k, v in PCs.copy().items():
+                guild = client.get_guild(int(k))
+                if not guild:
+                    print("Removed Guild: " + PCs.pop(k))
+                    continue
+                for l, w in v.copy().items():
+                    if not l.isdigit() or not type(w) == list:
+                        continue
+                    owner = discord.utils.get(guild.members, id=int(l))
+                    if not owner:
+                        print("Removed owner: " + PCs[k].pop(l))
+                        continue
+                    for x in w:
+                        chan = discord.utils.get(guild.channels, id=int(x))
+                        if not chan:
+                            PCs[k][l].remove(x)
+                            print("Removed channel")
+            file = open('privatechannels.json', 'w')
+            file.write(json.dumps(PCs))
+            file.close()
+            await asyncio.sleep(3600)
+    
     
     def wordnumtonum(self, s, uid):
         s = s.lower()
@@ -108,6 +168,28 @@ class HelpMethods(object):
         users.update({uid: calc})
         file = open('usercalcs.json', 'w+')
         file.write(json.dumps(users))
+        
+    def texttomorse(self, text):
+        texttomorse = {'A':'.-', 'B':'-...', 'C':'-.-.', 'D':'-..', 'E':'.', 'F':'..-.', 'G':'--.', 'H':'....', 'I':'..', 'J':'.---', 'K':'-.-', 'L':'.-..', 'M':'--', 'N':'-.', 'O':'---', 'P':'.--.', 'Q':'--.-', 'R':'.-.', 'S':'...', 'T':'-', 'U':'..-', 'V':'...-', 'W':'.--', 'X':'-..-', 'Y':'-.--', 'Z':'--..', '1':'.----', '2':'..---', '3':'...--', '4':'....-', '5':'.....', '6':'-....', '7':'--...', '8':'---..', '9':'----.', '0':'-----', ', ':'--..--', '.':'.-.-.-', '?':'..--..', '/':'-..-.', '-':'-....-', '(':'-.--.', ')':'-.--.-'}
+        words = text.split(' ')
+        morse = ""
+        for x in words:
+            for y in x:
+                morse += texttomorse[y] + ' '
+            morse += '/ '
+        return morse[:-2]
+    
+    def morsetotext(self, morse):
+        texttomorse = {'A':'.-', 'B':'-...', 'C':'-.-.', 'D':'-..', 'E':'.', 'F':'..-.', 'G':'--.', 'H':'....', 'I':'..', 'J':'.---', 'K':'-.-', 'L':'.-..', 'M':'--', 'N':'-.', 'O':'---', 'P':'.--.', 'Q':'--.-', 'R':'.-.', 'S':'...', 'T':'-', 'U':'..-', 'V':'...-', 'W':'.--', 'X':'-..-', 'Y':'-.--', 'Z':'--..', '1':'.----', '2':'..---', '3':'...--', '4':'....-', '5':'.....', '6':'-....', '7':'--...', '8':'---..', '9':'----.', '0':'-----', ', ':'--..--', '.':'.-.-.-', '?':'..--..', '/':'-..-.', '-':'-....-', '(':'-.--.', ')':'-.--.-'}
+        morsetotext = {v: k for k, v in texttomorse.items()}
+        words = morse.split('  ')
+        text = ""
+        for x in words:
+            letters = x.split(' ')
+            for y in letters:
+                text += morsetotext[y]
+            text += ' '
+        return text
         
     async def dup_char_to_emoji(self, c, dup, emojdup):
         if c == 'a':
@@ -288,5 +370,4 @@ class HelpMethods(object):
             return self.emojdoub[12]
         elif c == '10':
             return self.emojdoub[13]
-            
-            
+        
