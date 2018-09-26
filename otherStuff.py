@@ -89,6 +89,7 @@ class HelpMethods(object):
     async def autocleanpcdb(self, client):
         ""
         while(True):
+            await asyncio.sleep(3600)
             file = open('privatechannels.json', 'r+')
             PCs = json.load(file)
             file.close()
@@ -96,14 +97,14 @@ class HelpMethods(object):
             for k, v in PCs.copy().items():
                 guild = client.get_guild(int(k))
                 if not guild:
-                    print("Removed Guild: " + PCs.pop(k))
+                    PCs.pop(k)
                     continue
                 for l, w in v.copy().items():
                     if not l.isdigit() or not type(w) == list:
                         continue
                     owner = discord.utils.get(guild.members, id=int(l))
                     if not owner:
-                        print("Removed owner: " + PCs[k].pop(l))
+                        PCs[k].pop(l)
                         continue
                     for x in w:
                         chan = discord.utils.get(guild.channels, id=int(x))
@@ -113,7 +114,26 @@ class HelpMethods(object):
             file = open('privatechannels.json', 'w')
             file.write(json.dumps(PCs))
             file.close()
-            await asyncio.sleep(3600)
+    
+            
+    def getprefix(self, gid):
+        file = open('prefixes.json', 'r+')
+        PFs = json.load(file)
+        file.close()
+        pf = PFs.get(gid) or '!?' 
+        file = open('prefixes.json', 'w')
+        file.write(json.dumps(PFs))
+        file.close()
+        return pf
+    
+    def setprefix(self, gid, pref):
+        file = open('prefixes.json', 'r+')
+        PFs = json.load(file)
+        file.close()
+        PFs.update({gid:pref})
+        file = open('prefixes.json', 'w')
+        file.write(json.dumps(PFs))
+        file.close()
     
     
     def wordnumtonum(self, s, uid):
@@ -168,6 +188,34 @@ class HelpMethods(object):
         users.update({uid: calc})
         file = open('usercalcs.json', 'w+')
         file.write(json.dumps(users))
+        
+    async def gettarget(self, ctx, posstarget):
+        if '#' in posstarget:
+            target = discord.utils.get(ctx.guild.members, name=posstarget.split('#')[0], discriminator=posstarget.split('#')[1])
+        elif posstarget.isdigit():
+            n = int(posstarget)
+            if n > 10000000000000000:
+                target = discord.utils.get(ctx.guild.members, id=int(posstarget)) or discord.utils.get(ctx.guild.roles, id=int(posstarget))
+        else:
+            target = discord.utils.get(ctx.guild.members, mention=posstarget) or discord.utils.get(ctx.guild.roles, mention=posstarget) or discord.utils.get(ctx.guild.roles, name=posstarget)
+        return target
+    
+    async def getchannel(self, ctx, posschannel):
+        channel = None
+        if posschannel.isdigit():
+            n = int(posschannel)
+            if n > 10000000000000000:
+                channel = discord.utils.get(ctx.guild.channels, id=int(posschannel))
+        else:
+            channel = discord.utils.get(ctx.guild.channels, mention=posschannel) or discord.utils.get(ctx.guild.channels, name=posschannel)
+        return channel
+    
+    def isdigit(self, n):
+        try:
+            int(n)
+            return True
+        except ValueError:
+            return  False
         
     def texttomorse(self, text):
         texttomorse = {'A':'.-', 'B':'-...', 'C':'-.-.', 'D':'-..', 'E':'.', 'F':'..-.', 'G':'--.', 'H':'....', 'I':'..', 'J':'.---', 'K':'-.-', 'L':'.-..', 'M':'--', 'N':'-.', 'O':'---', 'P':'.--.', 'Q':'--.-', 'R':'.-.', 'S':'...', 'T':'-', 'U':'..-', 'V':'...-', 'W':'.--', 'X':'-..-', 'Y':'-.--', 'Z':'--..', '1':'.----', '2':'..---', '3':'...--', '4':'....-', '5':'.....', '6':'-....', '7':'--...', '8':'---..', '9':'----.', '0':'-----', ', ':'--..--', '.':'.-.-.-', '?':'..--..', '/':'-..-.', '-':'-....-', '(':'-.--.', ')':'-.--.-'}
