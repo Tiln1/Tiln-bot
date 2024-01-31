@@ -6,8 +6,6 @@ Created on Apr 16, 2018
 import random
 import numpy
 from random import randint
-import numpy
-from random import randint
 import math
 import re
 from decimal import Decimal
@@ -73,17 +71,11 @@ client.remove_command('help')
 
 mc = MongoClient('localhost', 27017)
 tilndb = mc.tiln
-
-mc = MongoClient('localhost', 27017)
-tilndb = mc.tiln
 hm = HelpMethods()
-
 
 asc = ['', '', '', '', '', '', '', '', '    ', '', '', '\n', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\', ']', '^', '_', "`", 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ' ', '¡', '¢', '£', '¤', '¥', '¦', '§', '¨', '©', 'ª', '«', '¬', '­', '®', '¯', '°', '±', '²', '³', '´', 'µ', '¶', '·', '¸', '¹', 'º', '»', '¼', '½', '¾', '¿', 'À', 'Á', 'Â', 'Ã', 'Ä', 'Å', 'Æ', 'Ç', 'È', 'É', 'Ê', 'Ë', 'Ì', 'Í', 'Î', 'Ï', 'Ð', 'Ñ', 'Ò', 'Ó', 'Ô', 'Õ', 'Ö', '×', 'Ø', 'Ù', 'Ú', 'Û', 'Ü', 'Ý', 'Þ', 'ß', 'à', 'á', 'â', 'ã', 'ä', 'å', 'æ', 'ç', 'è', 'é', 'ê', 'ë', 'ì', 'í', 'î', 'ï', 'ð', 'ñ', 'ò', 'ó', 'ô', 'õ', 'ö', '÷', 'ø', 'ù', 'ú', 'û', 'ü', 'ý', 'þ' ]
 emojAN = ['🇦', '🇧', '🇨', '🇩', '🇪', '🇫', '🇬', '🇭', '🇮', '🇯', '🇰', '🇱', '🇲', '🇳', '🇴', '🇵', '🇶', '🇷', '🇸', '🇹', '🇺', '🇻', '🇼', '🇽', '🇾', '🇿', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣']
-emojAN = ['🇦', '🇧', '🇨', '🇩', '🇪', '🇫', '🇬', '🇭', '🇮', '🇯', '🇰', '🇱', '🇲', '🇳', '🇴', '🇵', '🇶', '🇷', '🇸', '🇹', '🇺', '🇻', '🇼', '🇽', '🇾', '🇿', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣']
 #:hash: :exclamation: :question: :heavy_plus_sign: :heavy_minus_sign: :heavy_multiplication_x: :heavy_division_sign: :heavy_dollar_sign:
-emojmisc = ['#️⃣', '❗', '❓', '➕', '➖', '*⃣', '➗', '💲']
 emojmisc = ['#️⃣', '❗', '❓', '➕', '➖', '*⃣', '➗', '💲']
 emojdoub = ['🆎', '🆑', '🆔', '🆖', '🆗', '🆚', '🚾', '‼', '⁉', '🆕', '🆘', '🆒', '🆓', '🔟']
 cmds = (['reminder', 'cr', 'pchan', 'pchanowned', 'pchancreate', 'annoyingspoilerization', 'singleoption', 'echo', 'invite', 'emojify',
@@ -260,20 +252,11 @@ async def on_message(message):
             if x.startswith("!?"):
                 await client.process_commands(message)
                 return
-                return
             elif rp.match(x):
                 message.content="!?roll "+x
                 cmd = message.content.split(" ", 1)[0][2:]
                 await client.process_commands(message)
             else:
-                message.content = '!?calc '+x
-                await client.process_commands(message)
-        message.content = x
-        returnids = enrf.get(message.channel.id)
-        if returnids and message.content != returnids[2]:
-            c = hm.getchannel(hm.getguild(client, returnids[0]), returnids[1])
-            await c.send(message.content)
-            del enrf[message.channel.id]
                 message.content = '!?calc '+x
                 await client.process_commands(message)
         message.content = x
@@ -289,8 +272,6 @@ async def on_message(message):
     guildmessages = guild_ids.get(str(message.guild.id)) or 0
     guild_ids.update({str(message.guild.id): guildmessages+1})
     pre = hm.getprefix(str(message.guild.id))
-#     if '<@115707766714138627>' in message.content or '<!@115707766714138627>' in message.content:
-#         await message.channel.send('Tiln is sleeping')
 #     if '<@115707766714138627>' in message.content or '<!@115707766714138627>' in message.content:
 #         await message.channel.send('Tiln is sleeping')
     if message.content.replace('!', '') == str(client.user.mention):
@@ -619,9 +600,7 @@ async def on_message(message):
     #load dictionaries
     gid = str(message.guild.id)
     gc = countingf.get(gid) or {}
-    gc = countingf.get(gid) or {}
     cid = str(message.channel.id)
-    chanc = gc.get(cid) or {}
     chanc = gc.get(cid) or {}
     #store in dictionary
     if chanc and chanc.get('inc') != 'off':
@@ -1156,9 +1135,7 @@ async def help(ctx: commands.Context, command: str = 'NoArgument'):
         else: await ctx.send(""+pre+""+c+" is disabled")
     else: base = True
     s = "A.K.A Syntactic Help\n"
-    s = "A.K.A Syntactic Help\n"
     if base:
-        s += "```"+pre+"help Displays this command\n"+pre+"collectpoll collects a poll\n"+pre+"rolecount counts the number of people in the specified role(s)\n"+pre+"pchan "+pre+"pchancreate "+pre+"pchandelete "+pre+"pchanowned Does private channels things\n"
         s += "```"+pre+"help Displays this command\n"+pre+"collectpoll collects a poll\n"+pre+"rolecount counts the number of people in the specified role(s)\n"+pre+"pchan "+pre+"pchancreate "+pre+"pchandelete "+pre+"pchanowned Does private channels things\n"
         if ctx.channel.permissions_for(ctx.author).manage_guild:
             s += ""+pre+"enable enables commands\n"+pre+"disable disables commands\n"+pre+"setprefix changes the bot prefix"
@@ -1622,7 +1599,6 @@ async def collectpoll(ctx: commands.Context, arg: str):
             channel = hm.getchannel(ctx.guild, x)
             if channel:
                 continue    
-                continue    
             
         target = hm.gettarget(ctx, x)
         if target:
@@ -1642,25 +1618,12 @@ async def collectpoll(ctx: commands.Context, arg: str):
                 if message:
                     continue
             
-            continue
-        
-        if not message and hm.isdigit(cmc[x]):
-            n = int(cmc[x])
-            if n > 9000000000000000:
-                message = await (channel or ctx.channel).fetch_message(n)
-                if message:
-                    continue
-            
         if not num and hm.isdigit(cmc[x]):
             n = int(cmc[x])
             if n < 10000000000000000:
                 num = n
                 continue
     if not channel:
-        channel = ctx.channel
-    if not message:
-        async for x in channel.history(limit=1):
-            message = x
         channel = ctx.channel
     if not message:
         async for x in channel.history(limit=1):
@@ -2496,7 +2459,6 @@ async def pchan(ctx: commands.Context, arg: str):
     
     cmc[1] = cmc[1].replace("[space]", ' ')
     target = hm.gettarget(ctx, cmc[1])
-    target = hm.gettarget(ctx, cmc[1])
     if not target:
         await ctx.send("Invalid target")
         return
@@ -2530,10 +2492,8 @@ async def pchan(ctx: commands.Context, arg: str):
     elif cmc[0].lower() == "kick":
         overwrite = discord.PermissionOverwrite(read_messages=None)
         s = f'Kicked {target}'
-        s = f'Kicked {target}'
     elif cmc[0].lower() == "superkick":
         overwrite = discord.PermissionOverwrite(read_messages=False)
-        s = f'Superkicked {target}'
         s = f'Superkicked {target}'
     elif cmc[0].lower() == "setspectator":
         overwrite = discord.PermissionOverwrite(read_messages=True, send_messages=False, connect=False)
@@ -2555,7 +2515,6 @@ async def pchan(ctx: commands.Context, arg: str):
         guildPC.update({str(target.id):tchans})
         
         PCs.update({gid:guildPC})
-        tilndb.privatechannels.replace_one({}, PCs)
         tilndb.privatechannels.replace_one({}, PCs)
         
         s = "Transferred ownership to " + target.name
@@ -2611,7 +2570,6 @@ async def pchancreate(ctx: commands.Context, arg: str):
     testfc = True
     deny = False
     for x in reversed(ctx.author.roles):
-    for x in reversed(ctx.author.roles):
         rid = str(x.id)
         if guildPC.get(rid):
             testfc = False
@@ -2619,7 +2577,6 @@ async def pchancreate(ctx: commands.Context, arg: str):
             break
         elif guildPC.get(rid) == False:
             deny = True
-            break
             break
         
     if deny == True:
@@ -2676,7 +2633,6 @@ async def pchancreate(ctx: commands.Context, arg: str):
     
     PCs.update({gid:guildPC})
     tilndb.privatechannels.replace_one({}, PCs)
-    tilndb.privatechannels.replace_one({}, PCs)
     
 @client.hybrid_command()
 async def pchandelete(ctx: commands.Context, arg: str):
@@ -2726,7 +2682,6 @@ async def pchandelete(ctx: commands.Context, arg: str):
     guildPC.update({str(ctx.author.id):chans})
     
     PCs.update({gid:guildPC})
-    tilndb.privatechannels.replace_one({}, PCs)
     tilndb.privatechannels.replace_one({}, PCs)
     
 @client.hybrid_command()
@@ -3863,24 +3818,19 @@ async def wordcount(ctx: commands.Context, arg: str):
         if cmc[x].lower() == "after":
             if hm.isdigit(cmc[x+1]):
                 after = await ctx.channel.fetch_message(int(cmc[x+1]))
-                after = await ctx.channel.fetch_message(int(cmc[x+1]))
                 if not after:
                     await ctx.send("Invalid message id after after, perhaps you copied the user id instead of the message id?")
                     return
         elif cmc[x].lower() == "before":
             if hm.isdigit(cmc[x+1]):
                 before = await ctx.channel.fetch_message(int(cmc[x+1]))
-                before = await ctx.channel.fetch_message(int(cmc[x+1]))
                 if not before:
                     await ctx.send("Invalid message id after before, perhaps you copied the user id instead of the message id?")
                     return
         elif not target:
             target = hm.gettarget(ctx, cmc[x])
-            target = hm.gettarget(ctx, cmc[x])
     num = 0
     async for x in ctx.channel.history(limit=None, after=after, before=before):
-        if x.author == target or target == None or target in x.author.roles:
-            num += len(x.content) - len(x.content.replace(" ", "").replace("\n","")) + 1
         if x.author == target or target == None or target in x.author.roles:
             num += len(x.content) - len(x.content.replace(" ", "").replace("\n","")) + 1
     aftermsg = " after " + after.author.name + "'s specified message" if after else " before " + before.author.name + "'s specified message" if before else ""
@@ -3939,7 +3889,6 @@ async def counting(ctx: commands.Context, arg: str = 'NoArgument'):
         for x in range(0, len(cmc)):
             if not channel:
                 channel = hm.getchannel(ctx.guild, cmc[x])
-                channel = hm.getchannel(ctx.guild, cmc[x])
                 if channel:
                     continue
             if not increment:
@@ -3983,14 +3932,10 @@ async def counting(ctx: commands.Context, arg: str = 'NoArgument'):
         #load file
         if not countingf:
             countingf = tilndb.counting.find_one()
-        if not countingf:
-            countingf = tilndb.counting.find_one()
         #load dictionary
         gid = str(ctx.guild.id)
         gc = countingf.get(gid) or {}
-        gc = countingf.get(gid) or {}
         cid = str(channel.id)
-        chanc = gc.get(cid) or {}
         chanc = gc.get(cid) or {}
         #store in dictionary
         chanc.update({'inc':increment, 'current':start, 'base':base})

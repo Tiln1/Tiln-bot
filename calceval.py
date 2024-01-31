@@ -63,13 +63,6 @@ class NumericStringParser(object):
         xor = Literal("$")
         nott = Literal("~")
         down = Literal("↓↓")
-        sl = Literal("<<")
-        sr = Literal(">>")
-        ande = Literal("&")
-        orr = Literal("|")
-        xor = Literal("$")
-        nott = Literal("~")
-        down = Literal("↓↓")
         lpar = Literal("(").suppress()
         rpar = Literal(")").suppress()
         rt = Literal("~~")
@@ -96,10 +89,6 @@ class NumericStringParser(object):
         # expr <<  general_term
         self.bnf = expr
         # map operator symbols to corresponding arithmetic operations
-        # epsilon = 1e-12
-        self.opn = {
-                    # "/%": self.decdivrem,
-                    "+": operator.add,
         # epsilon = 1e-12
         self.opn = {
                     # "/%": self.decdivrem,
@@ -154,10 +143,6 @@ class NumericStringParser(object):
         if getcontext().prec != sigdig:
             getcontext().prec = sigdig
             getcontext().rounding = ROUND_HALF_UP
-        sigdig = 1550
-        if getcontext().prec != sigdig:
-            getcontext().prec = sigdig
-            getcontext().rounding = ROUND_HALF_UP
         op = s.pop()
         if op == 'unary -':
             return self.evaluateStack(s) * -1
@@ -190,44 +175,7 @@ class NumericStringParser(object):
            
     async def eval(self, num_string, parseAll=True):
 #         async def eval2(num_string, parseAll=True):
-                getcontext().rounding = ROUND_HALF_UP
-                getcontext().prec = 42
-                op = str(Decimal(op)+0)
-                while op[-1] == '0' and len(str(op)) > 1:
-                    op = op[:-1]
-                return Decimal(op)
-           
-    async def eval(self, num_string, parseAll=True):
-#         async def eval2(num_string, parseAll=True):
         self.exprStack = []
-#         try:
-        self.bnf.parseString(num_string, parseAll)
-#         except: return 0
-        
-        loop = asyncio.get_event_loop()
-        pool = futures.ThreadPoolExecutor()
-        func = partial(self.evaluateStack, self.exprStack)
-        future = loop.run_in_executor(pool, func)
-        
-        val = await asyncio.wait_for(future, 3)
-        
-        if val == 0:
-            return
-        
-        val = str(val)
-        if len(val.split('.', 1)[0])>27 or int(Decimal(val)) == Decimal(val) or '.0000000000000' in val or '.999999999999999' in val:
-            if '.999999999999999' in val:
-                return int(val.split('.', 1)[0]) + 1
-            return int(Decimal(val))
-        else:
-            getcontext().rounding = ROUND_HALF_UP
-            getcontext().prec = 42
-            val = str(Decimal(val)+0)
-            while val[-1] == '0' and len(str(val)) > 1:
-                val = val[:-1]
-            return Decimal(val)
-#         post_thread = Thread(target=await eval2, args=(num_string, parseAll))
-#         post_thread.start()
 #         try:
         self.bnf.parseString(num_string, parseAll)
 #         except: return 0
@@ -297,7 +245,6 @@ class NumericStringParser(object):
     
     def sqrt(self, num):
         return Decimal(abs(num))**Decimal(0.5)
-        return Decimal(abs(num))**Decimal(0.5)
     
     def sign(self, num):
         return numpy.sign(int(num))
@@ -360,27 +307,7 @@ class NumericStringParser(object):
         return a//2**b
         
     def shiftleft(self, a, b):
-    def shiftleft(self, a, b):
         return a*2**b
-    
-    def xorring(self, a, b):
-        return a^b
-    def orring(self, a, b):
-        return a|b
-    def anding(self, a, b):
-        return a&b
-    def notting(self, useless, a):
-        a = abs(a)
-        l = len(bin(a))-2
-        count = 0
-        while(True):
-            if 2**count >= l:
-                l = 2**count
-                break
-            count += 1
-        return int('0b'+'1'*l, 2) - a
-    
-
     
     def xorring(self, a, b):
         return a^b

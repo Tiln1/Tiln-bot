@@ -21,21 +21,6 @@ tilndb = mc.tiln
 servers = None
 freedomf = None
 prefixf = None
-import random  # @UnusedImport
-import base65536
-import struct
-import re  # @UnusedImport
-import itertools
-import copy
-from collections import defaultdict 
-from pymongo import MongoClient
-from datetime import datetime
-mc = MongoClient('localhost', 27017)
-tilndb = mc.tiln
-
-servers = None
-freedomf = None
-prefixf = None
 
 class HelpMethods(object):
     # :a: :b: :information_source: :pisces: :m: :scorpio: :virgo: :capricorn: :o2: :o: :parking: :Aries: :negative_squared_cross_mark: :x: :grey_exclamation: :grey_question:
@@ -58,21 +43,7 @@ class HelpMethods(object):
         servers = serversu
         tilndb.servers.replace_one({}, servers)
     
-    def cmds(self):
-        global servers
-        if not servers:
-            servers = tilndb.servers.find_one()
-        return servers
-    
-    def updatecmds(self, serversu):
-        global servers
-        servers = serversu
-        tilndb.servers.replace_one({}, servers)
-    
     def cmddisabled(self, sid, cmd):
-        global servers
-        if not servers:
-            servers = tilndb.servers.find_one()
         global servers
         if not servers:
             servers = tilndb.servers.find_one()
@@ -110,7 +81,7 @@ class HelpMethods(object):
         respond = True
         if specuser is None:
             if cmcs.isdigit():
-                user = await ctx.message.server.fetch_member(cmcs)
+                user = ctx.message.server.get_member(cmcs)
             else: user = ctx.message.mentions[0]
         else: 
             user = specuser
@@ -150,7 +121,6 @@ class HelpMethods(object):
             overwrites.update({ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False), owner:discord.PermissionOverwrite(read_messages=True, manage_messages=True, manage_threads=True, mention_everyone=True, priority_speaker=True, move_members=True)})
             for x in ctx.guild.roles:
                 if x.permissions.manage_channels or (x.permissions.manage_messages and x.permissions.ban_members):
-                if x.permissions.manage_channels or (x.permissions.manage_messages and x.permissions.ban_members):
                     overwrites.update({x: discord.PermissionOverwrite(read_messages=True)})
             try:
                 if voice:
@@ -168,16 +138,8 @@ class HelpMethods(object):
         guilds = eval(f'tilndb.{fp.split("/")[-1].split(".")[0]}.find_one()')
         return guilds.get(gid)
     
-    def openguildjson(self, fp, gid):
-        guilds = eval(f'tilndb.{fp.split("/")[-1].split(".")[0]}.find_one()')
-        return guilds.get(gid)
-    
             
     def getprefix(self, gid):
-        global prefixf
-        if not prefixf:
-            prefixf = tilndb.prefixes.find_one()
-        pf = prefixf.get(str(gid)) or '!?'
         global prefixf
         if not prefixf:
             prefixf = tilndb.prefixes.find_one()
@@ -195,23 +157,7 @@ class HelpMethods(object):
     def wordnumtonum(self, s2, rpldic):
         s = s2.lower()
         for k, v in rpldic:
-        global prefixf
-        if not prefixf:
-            prefixf = tilndb.prefixes.find_one()
-        prefixf.update({gid:pref})
-        tilndb.prefixes.replace_one({}, prefixf)
-    
-    
-    def wordnumtonum(self, s2, rpldic):
-        s = s2.lower()
-        for k, v in rpldic:
             s = s.replace(k, v)
-        timedict = [('second', 1), ('year', 365.2425*24*3600), ('month', 30.436875*24*3600), ('week', 168*3600), ('day', 24*3600), ('hour', 3600), ('minute', 60)]
-        timedict2 = [(x[0], '('+str(x[1])) for x in timedict]
-        for k, v in reversed(timedict):
-            timedict2.insert(0, (k+'s', '/'+str(v)+')'))
-        for k, v in timedict2:
-            s = s.replace(k, str(v))
         timedict = [('second', 1), ('year', 365.2425*24*3600), ('month', 30.436875*24*3600), ('week', 168*3600), ('day', 24*3600), ('hour', 3600), ('minute', 60)]
         timedict2 = [(x[0], '('+str(x[1])) for x in timedict]
         for k, v in reversed(timedict):
@@ -226,30 +172,6 @@ class HelpMethods(object):
             s = s + ')'*(openp-closep)
         elif closep > openp:
             s = '('*(closep-openp) + s
-        inshere = []
-        openins = [m.start() for m in re.finditer(r'\(', s)]
-        for x in openins:
-            if x == 0:
-                continue
-            if s[x-1] in '0123456789)':
-                inshere.append(x-1)
-        closeins = [m.start() for m in re.finditer(r'\)', s)]
-        for x in closeins:
-            if x+1 == len(s):
-                continue
-            if s[x+1] in '0123456789(qwertyuiopasdfghjklzxcvbnm':
-                inshere.append(x+1)
-        for x in '0123456789':
-            numins = [m.start() for m in re.finditer(x, s)]
-            for y in numins:
-                if y+1 == len(s):
-                    continue
-                if s[y+1] in 'qwertyuiopasdfghjklzxcvbnm':
-                    inshere.append(y+1)
-        #print(traceback.print_exc(file=sys.stdout))
-        
-        for x in sorted(inshere, reverse=True):
-            s = self.insert(s, '*', x)
         inshere = []
         openins = [m.start() for m in re.finditer(r'\(', s)]
         for x in openins:
@@ -449,43 +371,7 @@ class HelpMethods(object):
         
     def gettarget(self, ctx, posstarget):
         target = None
-        users = tilndb.usercalcs.find_one()
-        user = users.get(uid) or ('', '')
-        return str(user[0]) + message
-    
-    def getprevvars(self, uid):
-        users = tilndb.usercalcs.find_one()
-        user = users.get(uid) or ('', {})
-        uservars = user[1]
-        return {}
-    
-    def getprevvar(self, uid, var):
-        return self.getprevvars(uid).get(var)
-        
-    def storeprevcalc(self, uid, calc=None, vars=None):  # @ReservedAssignment
-        users = tilndb.usercalcs.find_one()
-        user = users.get(uid) or (calc if calc != None else '0', {})
-        if calc == None:
-            calc = user[0]
-        uservars = user[1]
-        if vars:
-            uservars.update(vars)
-        users.update({uid: (calc, uservars)})
-        tilndb.usercalcs.replace_one({}, users)
-        
-    def gettarget(self, ctx, posstarget):
-        target = None
         if '#' in posstarget:
-            strofuser = posstarget.split('#')
-            target = discord.utils.get(ctx.guild.members, name=strofuser[0], discriminator=strofuser[1])
-        if not target:
-            try:
-                n = int(posstarget)
-                if n > 10000000000000000:
-                    target = discord.utils.get(ctx.guild.members, id=n) or discord.utils.get(ctx.guild.roles, id=int(posstarget))
-            except: ""
-        if posstarget[3:-1].isdigit() and not target:
-            n = int(posstarget[3:-1])
             strofuser = posstarget.split('#')
             target = discord.utils.get(ctx.guild.members, name=strofuser[0], discriminator=strofuser[1])
         if not target:
@@ -499,13 +385,9 @@ class HelpMethods(object):
             if n > 10000000000000000:
                 target = discord.utils.get(ctx.guild.members, id=n)
         if not target:
-                target = discord.utils.get(ctx.guild.members, id=n)
-        if not target:
             target = discord.utils.get(ctx.guild.members, mention=posstarget) or discord.utils.get(ctx.guild.roles, mention=posstarget) or discord.utils.get(ctx.guild.roles, name=posstarget)
         return target
     
-    def getchannel(self, guild, posschannel, byname=True):
-        posschannel = str(posschannel)
     def getchannel(self, guild, posschannel, byname=True):
         posschannel = str(posschannel)
         channel = None
@@ -757,7 +639,6 @@ class HelpMethods(object):
             return True
         except ValueError:
             return False
-            return False
         
     def texttomorse(self, text):
         words = text.split(' ')
@@ -956,10 +837,6 @@ class HelpMethods(object):
 #             return emojdupdict[c][dup.count('a')]
 #         except:
 #             return emojdupdict[c][0]
-#         try:
-#             return emojdupdict[c][dup.count('a')]
-#         except:
-#             return emojdupdict[c][0]
         if c == 'a':
             if c in dup:
                 if 'aaa' in ''.join(dup):
@@ -1139,21 +1016,6 @@ class HelpMethods(object):
         elif c == '10':
             return self.emojdoub[13]
         
-# class BufSink(discord.reader.AudioSink):
-#     def __init__(self):
-#         self.bytearr_buf = bytearray()
-#         self.sample_width = 2
-#         self.sample_rate = 96000
-#         self.bytes_ps = 192000
-# 
-#     # just append data to the byte array
-#     def write(self, data):
-#         self.bytearr_buf += data.data
-# 
-#     # to prevent the buffer from getting immense, we just cut the part we've
-#     # just read from it, using the index calculated when we extracted the part
-#     def freshen(self, idx):
-#         self.bytearr_buf = self.bytearr_buf[idx:]
 # class BufSink(discord.reader.AudioSink):
 #     def __init__(self):
 #         self.bytearr_buf = bytearray()
