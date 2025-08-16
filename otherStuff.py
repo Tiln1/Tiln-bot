@@ -12,9 +12,12 @@ import struct
 import re  # @UnusedImport
 import itertools
 import copy
+import json
+import sympy
 from collections import defaultdict 
 from pymongo import MongoClient
 from datetime import datetime
+
 mc = MongoClient('localhost', 27017)
 tilndb = mc.tiln
 
@@ -103,12 +106,39 @@ class HelpMethods(object):
         else: await ctx.send("You don't have permission to use that command or that part of that command :sweat_smile: ")
         return False
     
-    async def createpc(self, ctx, owner, catnid="private channels", voice=False, chin=1):
-        if inter := ctx.interaction:
-            cmc = arg.split(" ")
-        else:
-            cmc = ctx.message.content.split(" ")[1:]
-        if not (chan := discord.utils.get(ctx.guild.channels, name=cmc[chin]) or discord.utils.get(ctx.guild.channels, mention=cmc[chin])):
+    # async def createpc(self, ctx, owner, catnid="private channels", voice=False, chin=1):
+    #     if inter := ctx.interaction:
+    #         cmc = arg.split(" ")
+    #     else:
+    #         cmc = ctx.message.content.split(" ")[1:]
+    #     if not (chan := discord.utils.get(ctx.guild.channels, name=cmc[chin]) or discord.utils.get(ctx.guild.channels, mention=cmc[chin])):
+    #         if not (cat := discord.utils.get(ctx.guild.categories, name=catnid)) and catnid.isdigit():
+    #             cat = discord.utils.get(ctx.guild.categories, id=int(catnid))
+    #         if not cat:
+    #             try:
+    #                 cat = await ctx.guild.create_category(catnid, reason="Setting up private channels")
+    #             except discord.HTTPException as e:
+    #                 await ctx.channel.send(str(e).split(':')[-1])
+    #                 return
+    #         overwrites = cat.overwrites
+    #         overwrites.update({ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False), owner:discord.PermissionOverwrite(read_messages=True, manage_messages=True, manage_threads=True, mention_everyone=True, priority_speaker=True, move_members=True)})
+    #         for x in ctx.guild.roles:
+    #             if x.permissions.manage_channels or (x.permissions.manage_messages and x.permissions.ban_members):
+    #                 overwrites.update({x: discord.PermissionOverwrite(read_messages=True)})
+    #         try:
+    #             if voice:
+    #                 chan = await ctx.guild.create_voice_channel(cmc[chin], overwrites=overwrites, category=cat, reason="Owner: " + str(owner) + " by command of: " + str(ctx.author) + ".")
+    #             else:
+    #                 chan = await ctx.guild.create_text_channel(cmc[chin], overwrites=overwrites, category=cat, reason="Owner: " + str(owner) + " by command of: " + str(ctx.author) + ".")
+    #             await ctx.channel.send("Channel created")
+    #         except discord.HTTPException as e:
+    #             await ctx.channel.send(str(e).split(':')[-1])
+    #             return
+    #     return chan
+
+
+    async def createpc(self, ctx, owner, chin, catnid="private channels", voice=False):
+        if not (chan := discord.utils.get(ctx.guild.channels, name=chin) or discord.utils.get(ctx.guild.channels, mention=chin)):
             if not (cat := discord.utils.get(ctx.guild.categories, name=catnid)) and catnid.isdigit():
                 cat = discord.utils.get(ctx.guild.categories, id=int(catnid))
             if not cat:
@@ -117,19 +147,26 @@ class HelpMethods(object):
                 except discord.HTTPException as e:
                     await ctx.channel.send(str(e).split(':')[-1])
                     return
-            overwrites = cat.overwrites
-            overwrites.update({ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False), owner:discord.PermissionOverwrite(read_messages=True, manage_messages=True, manage_threads=True, mention_everyone=True, priority_speaker=True, move_members=True)})
+            overwrites = {ctx.guild.default_role: discord.PermissionOverwrite(read_messages=False), owner:discord.PermissionOverwrite(read_messages=True, manage_messages=True, manage_threads=True, mention_everyone=True, create_polls=True, priority_speaker=True, move_members=True)}
             for x in ctx.guild.roles:
                 if x.permissions.manage_channels or (x.permissions.manage_messages and x.permissions.ban_members):
                     overwrites.update({x: discord.PermissionOverwrite(read_messages=True)})
             try:
                 if voice:
-                    chan = await ctx.guild.create_voice_channel(cmc[chin], overwrites=overwrites, category=cat, reason="Owner: " + str(owner) + " by command of: " + str(ctx.author) + ".")
+                    chan = await cat.create_voice_channel(chin, reason="Owner: " + str(owner) + " by command of: " + str(ctx.author) + ".")
                 else:
-                    chan = await ctx.guild.create_text_channel(cmc[chin], overwrites=overwrites, category=cat, reason="Owner: " + str(owner) + " by command of: " + str(ctx.author) + ".")
-                await ctx.channel.send("Channel created")
+                    chan = await cat.create_text_channel(chin, reason="Owner: " + str(owner) + " by command of: " + str(ctx.author) + ".")
+                overwrites2 = chan.overwrites
+                overwrites2.update(overwrites)
+                synced = chan.permissions_synced
+                await chan.edit(overwrites=overwrites2)
+                await ctx.channel.send(f"Channel created {chan.mention}\nPermissions synced: {synced}")
             except discord.HTTPException as e:
-                await ctx.channel.send(str(e).split(':')[-1])
+                error = str(e).split('\n')[-1]
+                if 'Missing Permissions' in error:
+                    await ctx.channel.send("I don't have permission to do that")
+                else:
+                    await ctx.channel.send(error)
                 return
         return chan
     
@@ -414,6 +451,41 @@ class HelpMethods(object):
                 role = discord.utils.get(guild.roles, name=possrole)
         return role
     
+    def is_emoji(self, strng):
+        emoj = re.compile("["
+            u"\U0001F600-\U0001F64F"  # emoticons
+            u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+            u"\U0001F680-\U0001F6FF"  # transport & map symbols
+            u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+            u"\U00002500-\U00002BEF"  # chinese char
+            u"\U00002702-\U000027B0"
+            u"\U00002702-\U000027B0"
+            u"\U000024C2-\U0001F251"
+            u"\U0001f926-\U0001f937"
+            u"\U00010000-\U0010ffff"
+            u"\u2640-\u2642" 
+            u"\u2600-\u2B55"
+            u"\u200d"
+            u"\u23cf"
+            u"\u23e9"
+            u"\u231a"
+            u"\ufe0f"  # dingbats
+            u"\u3030"
+                        "]+", re.UNICODE)
+        return re.match(emoj, strng)
+
+    def getemoji(self, guild, possemoji):
+        emoji = None
+        if possemoji.isdigit():
+            n = int(possemoji)
+            if n > 10000000000000000:
+                emoji = discord.utils.get(guild.emojis, id=int(possemoji))
+        elif ':' in str(possemoji):
+            emoji = discord.utils.get(guild.emojis, id=int(possemoji.split(':')[2][:-1]))
+        elif self.is_emoji(possemoji):
+            emoji = possemoji
+        return emoji
+    
     def getmember(self, guild, possmember, byname=True):
         member = None
         if '#' in possmember:
@@ -612,21 +684,28 @@ class HelpMethods(object):
         nobrace = []
         inbraces = False
         for x in string:
-            entryorexit = False
+            entryorexit = True
             if x == braces[0]:
                 inbraces = True
-                entryorexit = True
-            if x == braces[1]:
+            elif x == braces[1]:
                 inbraces = False
-                entryorexit = True
-            if entryorexit:
-                splitstr.append(tempstr)
-                if inbraces:
+            else: entryorexit = False
+            if x == ' ' and not inbraces:
+                if len(tempstr) > 0:
+                    splitstr.append(tempstr)
                     nobrace.append(tempstr)
-                else:
-                    bracedvars.append(tempstr)
-                tempstr = ''
+                    tempstr = ''
                 continue
+            if entryorexit:
+                if len(tempstr) > 0:
+                    splitstr.append(tempstr)
+                    if inbraces:
+                        nobrace.append(tempstr)
+                    else:
+                        bracedvars.append(tempstr)
+                    tempstr = ''
+                continue
+            if x == ' ' and len(tempstr) == 0: continue
             tempstr += x
         if tempstr:
             splitstr.append(tempstr)
@@ -661,7 +740,77 @@ class HelpMethods(object):
             text += ' '
         return text
 
-    
+    async def countingincrement(self, message, countingf, client):
+        #load dictionaries
+        gid = str(message.guild.id)
+        gc = countingf.get(gid) or {}
+        cid = str(message.channel.id)
+        chanc = gc.get(cid) or {}
+        #store in dictionary
+        if chanc and chanc.get('inc') != 'off':
+            base = chanc.get('base') or '10'
+            cur = chanc.get('current')
+            strbaseconv = self.converthelper(cur, '10', str(base))
+            intbaseconv = None
+            try: intbaseconv = int(strbaseconv)
+            except: pass
+            inc = chanc.get('inc').replace('^', '**')
+            if inc == "dictionary":
+                file = open('dictionary.json', 'r+')
+                dictionary = json.load(file)
+                file.close()
+                words = sorted(list(dictionary.keys()))
+                if message.content != words[int(cur)]:
+                    try:
+                        await message.delete()
+                    except (discord.Forbidden, discord.NotFound): pass
+                    return
+            elif message.content != strbaseconv and message.content != '{:,}'.format(intbaseconv):
+                try:
+                    await message.delete()
+                except (discord.Forbidden, discord.NotFound): pass
+                return
+            
+            
+            if inc == "1":
+                num = len(cur)
+            else:
+                num = int(cur)
+            reactions = []
+            reactionables = {"sympy.isprime(num)": ['🇵', '🇷', '🇮', '🇲', '🇪'],
+                            "message.content == message.content[::-1]": ['🇵','🇦','🇱','🇮','🇳','🇩','🇷','🇴','🇲','🇪'], 
+                            "num == int(num**0.5)**2": self.numtoreactions(int(num**0.5)) + ['🇸', '🇶', '🇺', discord.utils.get(client.emojis, name="a_", id=448623554292875266), '🇷', discord.utils.get(client.emojis, name="e_", id=448623554582282260), discord.utils.get(client.emojis, name="d_", id=448623287782604801)],
+                            }
+            for k, v in reactionables.items():
+                if inc == "dictionary": continue
+                if inc == '1' and k == "message.content == message.content[::-1]":
+                    continue
+                if inc == 'prime' and k != "message.content == message.content[::-1]":
+                    continue
+                if eval(k.replace('__', '')):
+                    if len(reactions):
+                        reactions.append('➕')
+                    reactions += v
+            if len(reactions):
+                reactions.append('🎉')
+            if inc == 'prime':
+                cur = sympy.nextprime(cur)
+                chanc.update({'current':str(cur)})
+            elif inc == 'dictionary':
+                cur = int(cur) + 1
+                chanc.update({'current':str(cur)})
+            else:
+                cur = eval(cur + inc)
+                chanc.update({'current':str(cur)})
+            gc.update({cid:chanc})
+            countingf.update({gid:gc})
+            #write to file
+            tilndb.counting.replace_one({}, countingf)
+            if base != '10' or inc == 'prime':
+                await self.countingtopic(str(cur), str(base), message.channel)
+            for y in reactions:
+                await message.add_reaction(y)
+
     async def countingtopic(self, num, base, chan):
         await asyncio.sleep(7)
 
@@ -987,34 +1136,9 @@ class HelpMethods(object):
             else: return emojdup[67]
     
     async def doub_char_to_emoji(self, c):
-        if c == 'ab':
-            return self.emojdoub[0]
-        elif c == 'cl':
-            return self.emojdoub[1]
-        elif c == 'id':
-            return self.emojdoub[2]
-        elif c == 'ng':
-            return self.emojdoub[3]
-        elif c == 'ok':
-            return self.emojdoub[4]
-        elif c == 'vs':
-            return self.emojdoub[5]
-        elif c == 'wc':
-            return self.emojdoub[6]
-        elif c == '!!':
-            return self.emojdoub[7]
-        elif c == '!?':
-            return self.emojdoub[8]
-        elif c == 'new':
-            return self.emojdoub[9]
-        elif c == 'sos':
-            return self.emojdoub[10]
-        elif c == 'cool':
-            return self.emojdoub[11]
-        elif c == 'free':
-            return self.emojdoub[12]
-        elif c == '10':
-            return self.emojdoub[13]
+        for idx, x in enumerate(['ab', 'cl', 'id', 'ng', 'ok', 'vs', 'wc', '!!', '!?', 'new', 'sos', 'cool', 'free', '10']):
+            if c == x:
+                return self.emojdoub[idx]
         
 # class BufSink(discord.reader.AudioSink):
 #     def __init__(self):
