@@ -3,9 +3,9 @@ Created on Apr 16, 2018
 
 @author: Tiln
 '''
+import os
 import random
 from random import randint
-import numpy
 import math
 import re
 from datetime import datetime, timedelta, timezone
@@ -25,9 +25,9 @@ import colorsys
 from googleapiclient.discovery import build
 from PIL import Image
 from threading import Thread
+import numpy
 import os
 import itertools
-import sounddevice as sd
 import pint
 from typing import Optional, Literal
 import gspread
@@ -43,13 +43,15 @@ import discord
 from discord.ext import commands  # @UnresolvedImport @UnusedImport
 from discord.ext.commands import Bot  # @UnresolvedImport
 
+
 from calceval import NumericStringParser  # @UnresolvedImport
 from otherStuff import HelpMethods # @UnresolvedImport
 from whiteLotus import WhiteLotus, OnboardingTicketView # @UnresolvedImport
+# from voiceMod import VoiceMod
 
-import chessclasses.piececlasses as pc  # @UnresolvedImport
-import chessclasses.algebraicnotation as an  # @UnresolvedImport
-import chessclasses.imagemanipulation as im  # @UnresolvedImport
+# import chessclasses.piececlasses as pc  # @UnresolvedImport
+# import chessclasses.algebraicnotation as an  # @UnresolvedImport
+# import chessclasses.imagemanipulation as im  # @UnresolvedImport
 
 import tracemalloc
 tracemalloc.start()
@@ -65,10 +67,14 @@ client = Bot(description="General bot", command_prefix="!?", intents=intent)
 client.remove_command('help')
 
 
-mc = MongoClient('localhost', 27017)
-tilndb = mc.tiln
-hm = HelpMethods()
+# mc = MongoClient('localhost', 27017)
+# tilndb = mc.tiln
+file = open("dbpass.txt", 'r')
+uri = f"mongodb+srv://Tiln:{file.readline()}@interrodb.1nfmevn.mongodb.net/?appName=InterroDB"
+interrodb = MongoClient(uri).interro
+hm = HelpMethods(interrodb)
 wl = WhiteLotus()
+
 
 asc = ['', '', '', '', '', '', '', '', '    ', '', '', '\n', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ' ', '!', '"', '#', '$', '%', '&', '\'', '(', ')', '*', '+', ',', '-', '.', '/', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ':', ';', '<', '=', '>', '?', '@', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', '[', '\\', ']', '^', '_', "`", 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '{', '|', '}', '~', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ' ', '¡', '¢', '£', '¤', '¥', '¦', '§', '¨', '©', 'ª', '«', '¬', '­', '®', '¯', '°', '±', '²', '³', '´', 'µ', '¶', '·', '¸', '¹', 'º', '»', '¼', '½', '¾', '¿', 'À', 'Á', 'Â', 'Ã', 'Ä', 'Å', 'Æ', 'Ç', 'È', 'É', 'Ê', 'Ë', 'Ì', 'Í', 'Î', 'Ï', 'Ð', 'Ñ', 'Ò', 'Ó', 'Ô', 'Õ', 'Ö', '×', 'Ø', 'Ù', 'Ú', 'Û', 'Ü', 'Ý', 'Þ', 'ß', 'à', 'á', 'â', 'ã', 'ä', 'å', 'æ', 'ç', 'è', 'é', 'ê', 'ë', 'ì', 'í', 'î', 'ï', 'ð', 'ñ', 'ò', 'ó', 'ô', 'õ', 'ö', '÷', 'ø', 'ù', 'ú', 'û', 'ü', 'ý', 'þ' ]
 emojAN = ['🇦', '🇧', '🇨', '🇩', '🇪', '🇫', '🇬', '🇭', '🇮', '🇯', '🇰', '🇱', '🇲', '🇳', '🇴', '🇵', '🇶', '🇷', '🇸', '🇹', '🇺', '🇻', '🇼', '🇽', '🇾', '🇿', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣']
@@ -85,10 +91,11 @@ cmds = (['reminder', 'cr', 'pchan', 'pchanowned', 'pchancreate', 'annoyingspoile
         'clearreactions', 'lcr', 'np', 'rankedpairs', 'timedroles', 'mountains', 'listroles', 'undisableablecommands', 
         'makeroleamuterole', 'notifyonstring', 'word', 'counting', 'enable', 'haiku'])
 udcmds = ['enable', 'disable', 'help', 'wordyhelp', 'freedom', 'disableablecommands', 'undisableablecommands']
-link = 'https://discordapp.com/oauth2/authorize?client_id={}&scope=bot%20applications.commands&permissions=285601234'
+link = 'https://discordapp.com/oauth2/authorize?client_id={}&scope=bot%20applications.commands&permissions=2251800100335058'
 guild_ids = {}
 discord_snowflake_mult = 602958483
 recently_deleted_message_ids = []
+voice_channels_made_by_me = []
 start_flag = True
 mes_sage_ids = []
 mes_sageid = 0
@@ -200,7 +207,6 @@ helpdict = ({"disable": "*commandstodisable\n"+pre+"disable command1 command2 co
             "singleoption":"",
             "graph":None,#done
             "notifyonstring":"[\"trigger\"] <\"message text\">",
-            "spam":"[SpamCount] <Delay> [Message]",
             "timestamp": "tstype[R,t,T,d,D,f,F][Relative,Short,Long Time,Short,Long Date,LDST,LD+DotW] time <timezone>[-24 to 24, 0.25k] <days>",
             "lyapunov": "string[[AB]{2,}] xbound ybound[both in the form (a, b) where 0<=a,b<=4 and a<b]",
             })
@@ -235,11 +241,11 @@ async def on_ready():
             'editcustomresponseoptions', 'renamealltherolesyesimabsolutelysure', 'givemeeveryrole', 'dm', 'improvedhardening'}).union({'haiku'}))
         print(cmds)
         for x in sorted(client.guilds, key=lambda x: x.member_count, reverse=True):
-            if x.name == '𝓞𝓷𝓵𝔂𝓑𝓸𝓽𝓼' or x.name == 'Seagull (Bot Party)' or x.name == '🤖🌍 Discord bot land | dsc.gg/dbland':
+            if x.id == 899144844381917254 or x.id == 1040774666794573975:
                 await x.leave()
             if x.member_count < 2000:
                 break
-            print(f'{x.name}: {x.member_count}')
+            print(f'{x.name}({x.id}): {x.member_count}')
         # await hm.fourtwenty(client)
         # await hm.autocleanpcdb(client)
     # await client.tree.sync()
@@ -296,7 +302,7 @@ async def on_message(message):
         message.content = x.replace(pre, '!?', 1)
         if not message.content.startswith('!?customresponses ') and not message.content.startswith('!?cr '):
             x = re.sub(r' +', ' ', x)
-        donotblock = ['reducemyarray', 'calc', 'roll', 'echo', 'echonreturnfirst', 'spam']
+        donotblock = ['reducemyarray', 'calc', 'roll', 'echo', 'echonreturnfirst']
         if not hm.cmddisabled(str(message.guild.id), cmd):
             if not message.author.bot or cmd in donotblock:
                 await client.process_commands(message)
@@ -304,12 +310,13 @@ async def on_message(message):
         else: await message.channel.send("The command \"" + cmd + "\" is disabled in this guild.")
     # if message.channel.id in wl.gatheringchannels and not message.author.bot:
     #     await wl.gatheringtimers(message)
-    if message.channel.id in wl.lootchannels and not message.author.bot:
-        await wl.loot(message)
+    # if (message.channel.id in wl.lootchannels or (message.guild.id == 1350667967050023002 and message.channel in voice_channels_made_by_me)) and not message.author.bot:
+    #     await wl.loot(message)
+
     if not hm.cmddisabled(str(message.guild.id), 'customresponses') and not message.author.bot:
         global crf
         if not crf:
-            servers = tilndb.customresponses.find_one()
+            servers = interrodb.customresponses.find_one()
         else:
             servers = crf
         sid = str(message.guild.id)
@@ -430,7 +437,9 @@ async def on_message(message):
                 except (discord.Forbidden, discord.NotFound): pass
                 
                 try:
-                    response = responses[random.randint(0, len(responses)-1)]
+                    if len(responses) > 1:
+                        response = responses[random.randint(0, len(responses)-1)]
+                    else: response = responses[0]
                     if user:
                         response = response.replace('{mention}', user.mention)
                         response = response.replace('{user.mention}', user.mention)
@@ -475,7 +484,7 @@ async def on_message(message):
         if not hm.cmddisabled(str(message.guild.id), 'haiku') and not message.author == client.user and len(cmc := x.split(' ')) < 21 and nohaiku not in authroles:
             global haikuf
             if not haikuf:
-                haikuf = tilndb.words.find_one()
+                haikuf = interrodb.words.find_one()
 
             # x is the line of text we are dealing with
             x = re.sub(r' +', ' ', x)
@@ -483,7 +492,7 @@ async def on_message(message):
             listoflists = [[]]
             for y in cmc:
                 templist = []
-                exclude = set(string.punctuation.replace("'", '').replace('-', '') + '|') 
+                exclude = set(string.punctuation.replace("'", '').replace('-', '')) 
                 formword = ''.join(ch for ch in y if ch not in exclude).upper()
                 formword.replace('’', "'")
                 if formword in haikuf.keys():
@@ -563,52 +572,62 @@ async def on_message(message):
     #label, mention, channel, mentionme
     #Tiln, @messager, my-channel, @Tiln
 
-    global nosf
-    if not nosf:
-        nosf = tilndb.notifyonstring.find_one()
-    data = nosf.get('data')
-    for x in data:
-        userid = int(x[1])
-        member = message.guild.get_member(userid)
-        chan = message.channel
-        if not member or message.author.bot or message.author.id == userid: continue
-        try:
-            memperms = chan.permissions_for(member)
-        except:
-            break
-        if memperms.read_messages:
-            if len(x) > 4:
-                if message.guild.id in x[4] or chan.id in x[5]: continue
+    if not message.author.bot:
+        global nosf
+        if not nosf:
+            nosf = interrodb.notifyonstring.find_one()
+        whitelist = []
+        blacklist = []
+        data = nosf.get('data')
+        for x in data:
+            userid = int(x[1])
+            if userid in blacklist:
+                continue
+            if userid not in whitelist:
+                member = message.guild.get_member(userid)
+                if not member or message.author.id == userid: 
+                    blacklist.append(userid)
+                    continue
+                try:
+                    memperms = message.channel.permissions_for(member)
+                except:
+                    continue
+                if memperms.read_messages:
+                    whitelist.append(userid)
+                else:
+                    blacklist.append(userid)
+                    continue
+            if len(x) > 5 and (message.guild.id in x[4] or message.channel.id in x[5]): continue
             trigger = x[2].lower()
-            exclude = set(string.punctuation).union(set('’“”'))#0123456789
+            exclude = set(string.punctuation).union(set('’“”'))
             exclude.difference_update(set(trigger))
             conexpun = ''.join(ch for ch in message.content if ch not in exclude).lower().replace('\n', ' \n ')
             if f' {trigger} ' in f' {conexpun} ' or f' {trigger}s ' in f' {conexpun} ':
                 await asyncio.sleep(5)
                 if message.id in recently_deleted_message_ids:
                     break
-                if chan.type == discord.ChannelType.private_thread and not member.guild_permissions.manage_threads:
-                    try:
-                        await chan.fetch_member(userid)
-                    except discord.NotFound:
+                member = message.guild.get_member(userid)
+                chan = message.channel
+                if chan.type == discord.ChannelType.private_thread and not chan.permissions_for(member).manage_threads:
+                    members = chan.members
+                    if members is None:
+                        members = await chan.fetch_members()
+                    if member not in members:
                         continue
-                chan = f'<#{chan.id}>'
-                messagetext = x[3]
-                s = messagetext.replace('{mention}', message.author.mention).replace('{channel}', chan).replace('{content}', message.content).replace('{link}', f'{message.jump_url}').replace('{author}', str(message.author)).replace('\\n', '\n')
-                files = []
-                for y in message.attachments:
-                    y = await y.to_file()
-                    files.append(y)
+                    # try:
+                    #     await message.channel.fetch_member(userid)
+                    # except discord.NotFound:
+                    #     continue
                 try:
-                    if len(s) <= 2000:
-                        await client.get_channel(int(x[0])).send(s, files=files, suppress_embeds=True)
+                    s = x[3].replace('{mention}', message.author.mention).replace('{channel}', f'<#{message.channel.id}>').replace('{content}', message.content).replace('{link}', f'{message.jump_url}').replace('{author}', str(message.author)).replace('\\n', '\n')
+                    await client.get_channel(int(x[0])).send(s[:2000], suppress_embeds=True)
                 except (AttributeError, discord.Forbidden):
-                    nosf = tilndb.notifyonstring.find_one()
+                    nosf = interrodb.notifyonstring.find_one()
                     data = nosf.get('data')
                     data.remove(x)
                     nosf.update({"data": data})
-                    tilndb.notifyonstring.replace_one({}, nosf)
-            # end = time.time()
+                    interrodb.notifyonstring.replace_one({}, nosf)
+                # end = time.time()
 
     
     returnids = enrf.get(message.channel.id)
@@ -618,10 +637,10 @@ async def on_message(message):
         del enrf[message.channel.id]
         return
     
-    countstarttime = time.time()
+    # countstarttime = time.time()
     global countingf
     if not countingf:
-        countingf = tilndb.counting.find_one()
+        countingf = interrodb.counting.find_one()
     await hm.countingincrement(message, countingf, client)
                 
         
@@ -679,7 +698,7 @@ async def on_message_delete(message):
         recently_deleted_message_ids = [x for x in recently_deleted_message_ids if x not in unrecents]
     if message.channel.name == 'deletion-log':
         return
-    servers = tilndb.deloggedchannels.find_one()
+    servers = interrodb.deloggedchannels.find_one()
     gid = str(message.guild.id)
     channelids = servers.get(gid) or []
     if message.channel.id in channelids:
@@ -719,7 +738,8 @@ async def on_message_delete(message):
     
     for x in guild.text_channels:
         if x.name == 'deletion-log':
-            
+            if not x.permissions_for(message.guild.me).read_messages or not x.permissions_for(message.guild.me).send_messages:
+                break
             if str(deleter) != Abot:
                 dmen = '' if message.channel.permissions_for(deleter).read_messages else f'({dmen})'
             else: dmen = f''
@@ -754,7 +774,7 @@ async def on_raw_bulk_message_delete(payload):
 async def on_message_edit(before, after):
     if before.content == after.content or not before.guild or before.author.bot:
         return
-    servers = tilndb.deloggedchannels.find_one()
+    servers = interrodb.deloggedchannels.find_one()
     gid = str(after.guild.id)
     channelids = servers.get(gid) or []
     if after.channel.id in channelids:
@@ -779,7 +799,7 @@ async def on_member_join(member):
     if not guild.me.guild_permissions.manage_roles:
         return
     await asyncio.sleep(5)
-    servers = tilndb.rolepersistance.find_one()
+    servers = interrodb.rolepersistance.find_one()
     gid = str(member.guild.id)
     persistedusers = servers.get(gid) or {}
     mid = str(member.id)
@@ -797,7 +817,7 @@ async def on_member_join(member):
         else: return
         persistedusers.pop(mid, None)
         servers.update({gid: persistedusers})
-        tilndb.rolepersistance.replace_one({}, servers)
+        interrodb.rolepersistance.replace_one({}, servers)
         if guild == client.get_guild(455380663013736479):
             await guild.get_channel(563076821747367936).send(f'Restored roles {[x.name for x in roles]} to {member.mention} upon their rejoining.')
         
@@ -811,7 +831,7 @@ async def on_member_remove(member):
     await asyncio.sleep(.5)
     if member == banned_user or not member.guild.me.guild_permissions.manage_roles:
         return
-    servers = tilndb.rolepersistance.find_one()
+    servers = interrodb.rolepersistance.find_one()
     gid = str(member.guild.id)
     persistedusers = servers.get(gid) or {}
     mid = str(member.id)
@@ -821,7 +841,7 @@ async def on_member_remove(member):
             persistedroles.append(x.id)
     persistedusers.update({mid: persistedroles})
     servers.update({gid: persistedusers})
-    tilndb.rolepersistance.replace_one({}, servers)
+    interrodb.rolepersistance.replace_one({}, servers)
     
 @client.event
 async def on_member_ban(guild, user):
@@ -878,23 +898,20 @@ async def on_raw_reaction_add(payload):
         member = guild.get_member(payload.user_id)
         message = None
         try:
-            if chan.id in wl.gatheringchannels and not member.bot:
+            if emoji.name in ['❌', '🗑️']:
                 message = await chan.fetch_message(payload.message_id)
-                await wl.gatherablereact(member, message, chan, emoji, add=True)
-            if chan.id in wl.lootchannels and emoji.name == '❌':
-                message = await chan.fetch_message(payload.message_id)
-                await wl.lootroll(message, member)
-        
+                await wl.lootroll(message, member, emoji.name, client.user)
             if member.guild.me.guild_permissions.manage_messages and member.guild.me != member:
                 global sopf
                 global rrf
                 if not sopf:
-                    sopf = tilndb.singleoptionpolls.find_one()
+                    sopf = interrodb.singleoptionpolls.find_one()
                 try:
                     single = sopf.get(str(guild.id)).get(str(chan.id)).get(str(payload.message_id))
                 except: single = False
                 if single:
-                    message = await chan.fetch_message(payload.message_id)
+                    if not message:
+                        message = await chan.fetch_message(payload.message_id)
                     for x in message.reactions:
                         if x.emoji == str(emoji):
                             continue
@@ -906,7 +923,7 @@ async def on_raw_reaction_add(payload):
                             await x.remove(member)
                             continue
                 if not rrf:
-                    rrf = tilndb.reactionaryroles.find_one() or []
+                    rrf = interrodb.reactionaryroles.find_one() or []
                 try:
                     rr = rrf.get(str(guild.id)).get(str(chan.id))
                 except: rr = False
@@ -925,7 +942,7 @@ async def on_raw_reaction_add(payload):
                 
 
         if not rankedpairsf:
-            rankedpairsf = tilndb.rankedpairs.find_one()
+            rankedpairsf = interrodb.rankedpairs.find_one()
         rankedpairs = rankedpairsf.get(str(payload.message_id))
         if rankedpairs:
             responses = rankedpairs.get('responses')
@@ -946,12 +963,12 @@ async def on_raw_reaction_add(payload):
             
             await message.remove_reaction(emoji, member)
             rankedpairsf.update({str(message.id): rankedpairs, str(member.id): {'master': message.id, 'this': messagesent.id}})
-            tilndb.rankedpairs.replace_one({}, rankedpairsf)
+            interrodb.rankedpairs.replace_one({}, rankedpairsf)
     else:
         user = client.get_user(payload.user_id)
         message = user.dm_channel.get_partial_message(payload.message_id)
         if not rankedpairsf:
-            rankedpairsf = tilndb.rankedpairs.find_one()
+            rankedpairsf = interrodb.rankedpairs.find_one()
         storeduser = rankedpairsf.get(str(user.id))
         rpmessageid = storeduser.get('master')
         if not rpmessageid or storeduser.get('this') != payload.message_id:
@@ -991,7 +1008,7 @@ async def on_raw_reaction_add(payload):
                 s += f'\n{hm.rankednum(len(options))} {x}'
             await user.send(s + '```')
         
-        tilndb.rankedpairs.replace_one({}, rankedpairsf)
+        interrodb.rankedpairs.replace_one({}, rankedpairsf)
 
 @client.event
 async def on_raw_reaction_remove(payload):
@@ -1004,12 +1021,12 @@ async def on_raw_reaction_remove(payload):
     if not member: return
     if member.guild.me == member:
         return
-    if chan.id in wl.gatheringchannels and not member.bot:
-        message = await chan.fetch_message(payload.message_id)
-        await wl.gatherablereact(member, message, chan, emoji, add=False)
+    # if chan.id in wl.gatheringchannels and not member.bot:
+    #     message = await chan.fetch_message(payload.message_id)
+    #     await wl.gatherablereact(member, message, chan, emoji, add=False)
     global rrf
     if not rrf:
-        rrf = tilndb.reactionaryroles.find_one() or []
+        rrf = interrodb.reactionaryroles.find_one() or []
     try:
         rr = rrf.get(str(guild.id)).get(str(chan.id))
     except: rr = False
@@ -1025,6 +1042,53 @@ async def on_thread_create(thread):
             await thread.join()
     else:
         await thread.join()
+
+@client.event
+async def on_voice_state_update(member, before, after):
+    a = after.channel
+    b = before.channel
+    global voice_channels_made_by_me
+    if a: aperm = a.permissions_for(a.guild.me)
+    if a and a.name.lower().startswith('join to create') and aperm.view_channel and aperm.connect and aperm.manage_channels:
+        await asyncio.sleep(1)
+        if member not in a.members:
+            return
+        n = member.display_name
+        s = a.name[14:]
+        if len(s) == 0:
+            s = ' VC'
+        if n[:-1] == 's':
+            s = '\'' + s
+        else:
+            s = '\'s' + s
+        newvc = await a.clone(name=f'{n}{s}')
+        voice_channels_made_by_me.append(newvc)
+        try:
+            pos = 0
+            above = False
+            cat = newvc.category
+            for x in sorted(cat.voice_channels + cat.stage_channels, key=lambda x: x.position, reverse=True):
+                if x == a:
+                    above = True
+                    continue
+                if x.name.lower().startswith('join to create') or x in voice_channels_made_by_me:
+                    continue
+                if above:
+                    pos = x.position+1 
+            overwrites = newvc.overwrites
+            overwrites.update({member: discord.PermissionOverwrite(manage_channels=True, move_members=True)})
+            await newvc.edit(overwrites=overwrites, position=pos)
+        except discord.Forbidden: # How & Who to notify that I'm missing permission(s)?
+            return
+        try:
+            await member.move_to(newvc)
+        except discord.HTTPException:
+            await newvc.delete(reason='I made it but it did not get used')
+            voice_channels_made_by_me.remove(newvc)
+    elif b in voice_channels_made_by_me and len(b.members) == 0:
+        await b.delete(reason='I made it and now it is empty')
+        voice_channels_made_by_me.remove(b)
+
 
 # @client.event
 # async def on_guild_channel_update(before, after):
@@ -1215,7 +1279,6 @@ async def wordyhelp(ctx: commands.Context, command: str = 'NoArgument'):
           "singleoption":"",
           "graph":"`graph` creates a graph of the roles and member count for each role in the server",
           "notifyonstring":"Use `notifyonstring` to receive notifications when a post is made with text you want to watch for, such as your name. Notifications will be received only for channels that both you and !? can see and will be posted in the channel where the command is used. Manage Channels permission is required for the channel where the command is used.\nThe params are:\n[\"trigger\"] - Required. The text to watch for, case insensitive and in quotes. Use the trigger on its own to remove one notification for the trigger.\n<\"message text\"> - Optional. Use quotes around the notification message to receive, which supports the following options.\n  plain text: The message will include this text, as typed. Use `\\n` to add a line break.\n  {mention}: a mention of the user who sent the message\n  {author}: the name of the user who sent the message, without a mention\n  {channel}: a link to the channel where the message was sent\n  {content}: the content of the message\n  {link}: a link/jump url to the message",
-          "spam":"Use `spam` to spam a message a number of times in the current channel:\n[SpamCount] - The number of times to post the message\n<Delay>, optional - The number of seconds between each post\n[Message] - The message to be posted repeatedly",
           })
     s = ""
     if not cmc:
@@ -1403,7 +1466,9 @@ async def purge2(ctx: commands.Context, arg: str):
     else:
         before = None
         after = None
-     
+    
+    cannotcheckdeletable = False
+
     dootherints = True if len(otherints) else False
     if len(messagetimes): lim = None
     else: lim = 2*sum(otherints) or None
@@ -1434,6 +1499,12 @@ async def purge2(ctx: commands.Context, arg: str):
                 continue
             if x.pinned:
                 continue
+            if not cannotcheckdeletable:
+                try:
+                    if not x.is_deletable():
+                        continue
+                except:
+                    cannotcheckdeletable = True
             t = (datetime.now(timezone.utc) - x.created_at).total_seconds()
             if t < 2 + (len(otherints) + 1)//2:
                 continue
@@ -1520,14 +1591,14 @@ async def purge2(ctx: commands.Context, arg: str):
             if x.permissions_for(ctx.author).send_messages:
                 await x.send(mov, files=files)
     
-    servers = tilndb.deloggedchannels.find_one()
+    servers = interrodb.deloggedchannels.find_one()
     gid = str(ctx.message.guild.id)
     channelids = servers.get(gid) or []
     if ctx.message.channel.id in channelids:
         return
     s = ''
     for x in messages:
-        s += x[0].replace('```', '\`\`\`') + '\n'
+        s += x[0].replace('```', '\\`\\`\\`') + '\n'
     s = f'List of messages deleted in {ctx.channel.mention} by my purge command, newest to oldest:```' + s[:-1][-1900:]
     s += '```'
     for x in ctx.guild.text_channels:
@@ -1536,15 +1607,6 @@ async def purge2(ctx: commands.Context, arg: str):
     if inter:
         await inter.response.send_message(f"Successfully deleted {totdel2} messages", ephemeral=True)
     
-# @client.hybrid_command()
-# async def purgethewholechannel(ctx: commands.Context, arg: str):
-#     if not ctx.channel.permissions_for(ctx.author).manage_messages:
-#         await ctx.send("You don't have permission to use that command.")
-#         return
-#     async for x in ctx.channel.history(limit=None):
-#         await x.delete()
-
-# 
 
 @client.hybrid_command()
 async def collectpoll(ctx: commands.Context, arg: str):
@@ -1606,7 +1668,7 @@ async def collectpoll(ctx: commands.Context, arg: str):
 #     items = {'polltitle': polltitle, 'emoji': pollemoji, 'options': polloptions, 'responses': {}}
     global rankedpairsf
     if not rankedpairsf:
-        rankedpairsf = tilndb.rankedpairs.find_one()
+        rankedpairsf = interrodb.rankedpairs.find_one()
     rankedpairs = copy.deepcopy(rankedpairsf.get(str(message.id)))
     if rankedpairs:
         starpc = hm.rpcollection(rankedpairs, trgdic, ctx, btime)
@@ -1690,7 +1752,7 @@ async def singleoption(ctx: commands.Context, arg: str):
         mid = temp[1].id
     global sopf
     if not sopf:
-        sopf = tilndb.singleoptionpolls.find_one()
+        sopf = interrodb.singleoptionpolls.find_one()
     guild = sopf.get(str(gid)) or {}
     chan = guild.get(str(cid)) or {}
     mes = not chan.get(str(mid))
@@ -1698,7 +1760,7 @@ async def singleoption(ctx: commands.Context, arg: str):
     chan.update({str(mid):mes})
     guild.update({str(cid):chan})
     sopf.update({str(gid):guild})
-    tilndb.singleoptionpolls.replace_one({}, sopf)
+    interrodb.singleoptionpolls.replace_one({}, sopf)
         
     global mes_sageid
     mes_sageid = ctx.message.id
@@ -1754,175 +1816,9 @@ async def rankedpairs(ctx: commands.Context, arg: str):
 
     global rankedpairsf
     if not rankedpairsf:
-        rankedpairsf = tilndb.rankedpairs.find_one()
+        rankedpairsf = interrodb.rankedpairs.find_one()
     rankedpairsf.update({str(messageid): items})
-    tilndb.rankedpairs.replace_one({}, rankedpairsf)
-
-# @client.hybrid_command()
-# async def rankedpairsold(ctx: commands.Context, arg: str):
-#     
-    # if inter := ctx.interaction:
-    #     cmc = arg.split(" ")
-    # else:
-    #     cmc = ctx.message.content.split(" ")[1:]
-#     votes = {}
-#     alloptions = []
-#     after = await ctx.channel.fetch_message(int(cmc[0]))
-#     before =  await ctx.channel.fetch_message(int(cmc[1])) if len(cmc) > 1 else None
-#     async for x in ctx.channel.history(limit=None, after=after, before=before):
-#         if x == ctx.message:
-#             continue
-#         if x.author.id in votes.keys():
-#             continue
-#         thesevotes = x.content.split('\n')
-#         for y in thesevotes:
-#             if y not in alloptions:
-#                 alloptions.append(y)
-#         votes.update({x.author.id: sorted(set(thesevotes), key=thesevotes.index)})
-#     
-#     
-#     winners = []
-#     for x in list(itertools.combinations(alloptions, 2)):
-#         tally = [0, 0]
-#         for y in votes.values():
-#             pos = None
-#             if x[0] in y:
-#                 pos = y.index(x[0])
-#             if x[1] in y:
-#                 if pos is not None:
-#                     if y.index(x[1]) < pos:
-#                         tally[1] += 1
-#                     else:
-#                         tally[0] += 1
-#         if tally[0] > tally[1]:
-#             winners += [x[0], x[0]]
-#         elif tally[1] > tally[0]:
-#             winners += [x[1], x[1]]
-#         else:
-#             winners += [x[0], x[1]]
-#     
-#     tally = [[x,winners.count(x)] for x in set(winners)] 
-#     tally = sorted(tally, key=lambda x: x[1], reverse=True)
-#     s = '```'
-#     count = 1
-#     for x in tally:
-#         flt = int(x[1])/2
-#         choppablefloat = int(flt) if int(flt) == flt else flt
-#         s += f'\n{count}. {x[0]}: ({choppablefloat})'
-#         count += 1
-#     await ctx.send(s + '```')
-
-@client.hybrid_command()
-async def checktestresults(ctx: commands.Context, arg: str):
-    
-    if inter := ctx.interaction:
-        cmc = arg.split(" ")
-    else:
-        cmc = ctx.message.content.split(" ")[1:]
-    
-    chan = None
-    num = 0
-    for x in cmc:
-        if not chan:
-            chan = hm.getchannel(ctx.guild, x)
-            if chan: continue
-        if not num:
-            try:
-                num = int(x)
-                continue
-            except: ""
-                
-    count = 0
-    results = {}
-    messages = await chan.history(limit=num*2).flatten()
-    for x in reversed(messages):
-        if count == num:
-            break
-        rea = x.reactions
-        if not rea:
-            continue
-        for y in rea:
-            async for z in y.users():
-                urs = results.get(z.name) or []
-                urs.append(y.emoji)
-                results.update({z.name:urs})
-        count += 1
-        for k, v in results.items():
-            if len(v) < count:
-                v.append('0⃣')
-                results.update({k:v})
-        
-    emojdic = {}
-    for x, y in zip(emojAN, 'abcdefghijklmnopqrstuvwxyz0123456789'):
-        emojdic.update({x:y})
-    
-    results2 = {}
-    for k, v in results.items():
-        for x in v:
-            if x == '0⃣':
-                v.remove('0⃣')
-        results2.update({k:v})
-        
-    s = ''
-    for k in sorted(results.keys(), key=lambda x: len(results2[x]), reverse=True):
-        s += f'"{k}": '
-        for x in ["" + emojdic[a] + "" for a in results[k]]:
-            s += x
-        s += '\n'
-    
-            
-    splitres = s.split('\n')
-#     print(len(splitres), len(results), results)
-    tempres = ""
-    for x in range(len(splitres)):
-        tempres += splitres[x] + '\n'
-        if x+1 == len(splitres) or len(tempres + splitres[x+1]) > 2000:
-#             await ctx.send(tempres[:-1])
-            tempres = ""
-    if not ctx.interaction:
-        await ctx.message.delete()
-            
-    for k, v in results.items():
-        for x in range(len(v)):
-            v[x] = emojdic[v[x]]
-        results.update({k:v})
-    for k, v in results.items():
-        if len(v)<17:
-            while len(v)<17:
-                v.insert(0, '0')
-            results.update({k: v})
-    res = {}
-    for k, v in results.items():
-        #['adaabeib', 'bdaabeib', 'adaaceib', 'bdaaceib']
-        for z in ['epgdyyabcebbcdacw', 'epfdyyabcebbcdacw', 'epgdyydbcebbcdacw', 'epfdyydbcebbcdacw']:
-            count = 0
-            for x, y in zip(z, v):
-                if x == y :
-                    count += 1
-                    if x == 'g': count += 1
-            if count >= (res.get(k) or 0):
-                res.update({k:count})
-    res2 = {}
-    for k, v in results.items():
-        #['dabeaabi', 'dadeaabi']
-        for z in ['asaennccddwwwwwaw', 'aseennccddwwwwwaw']:
-            count = 0
-            for x, y in zip(z, v):
-                if x == y:
-                    count += 1
-            if count >= (res2.get(k) or 0):
-                res2.update({k:count})
-#     for k, v, u in zip(res.keys(), res.values(), res2.values()):
-#         res.update({k:(v-u)})
-#     for (k, v), (j, u) in zip(sorted(res.items(), key=lambda x: x[0]), sorted(res2.items(), key=lambda x: x[0])):
-    RW = ''
-    for k, v, u in sorted(zip(res.keys(), res.values(), res2.values()), key=lambda x: (x[1]-x[2], x[2]*-1, x[1])):
-        s = ''
-        for x in results.get(k):
-            RW += f'{v},{u} {k}{" "*(25-len(k))}{s}\n'
-#        if v > 5:
-#            print(results.get(k))
-    print(RW)
+    interrodb.rankedpairs.replace_one({}, rankedpairsf)
 
 @client.hybrid_command()
 async def rolesrecentmessages(ctx: commands.Context, arg: str):
@@ -2152,7 +2048,7 @@ async def reactionaryroles(ctx: commands.Context, arg: str):
     global rrf
     global emojAN
     if not rrf:
-        rrf = tilndb.reactionaryroles.find_one()
+        rrf = interrodb.reactionaryroles.find_one()
     if inter := ctx.interaction:
         cmc = hm.groupedsplit(arg)
     else:
@@ -2212,7 +2108,7 @@ async def reactionaryroles(ctx: commands.Context, arg: str):
     gstuff = rrf.get(str(ctx.guild.id)) or {}
     gstuff.update({str(ctx.channel.id): [msgs, [str(x.id) for x in listofroles], oa, loce]})
     rrf.update({str(ctx.guild.id): gstuff})
-    tilndb.reactionaryroles.replace_one({}, rrf)
+    interrodb.reactionaryroles.replace_one({}, rrf)
 
         
         
@@ -2327,7 +2223,7 @@ async def privatechannels(ctx: commands.Context, arg: str = 'NoArgument'):
         cmc = hm.groupedsplit(arg)
     else:
         cmc = hm.groupedsplit(ctx.message.content)[1:]
-    PCs = tilndb.privatechannels.find_one()
+    PCs = interrodb.privatechannels.find_one()
     gid = str(ctx.guild.id)
     guildPC = PCs.get(gid) or {}
     if len(cmc) == 0 or arg == 'NoArgument':
@@ -2458,7 +2354,7 @@ async def privatechannels(ctx: commands.Context, arg: str = 'NoArgument'):
             return
     # if guildPC != (PCs.get(gid) or {}): # deepcopy issue turns out
     PCs.update({gid:guildPC})
-    tilndb.privatechannels.replace_one({}, PCs)
+    interrodb.privatechannels.replace_one({}, PCs)
 
 
 @client.hybrid_command()
@@ -2471,7 +2367,7 @@ async def pchan(ctx: commands.Context, arg: str):
         cmc = hm.groupedsplit(arg)
     else:
         cmc = hm.groupedsplit(ctx.message.content)[1:]
-    PCs = tilndb.privatechannels.find_one()
+    PCs = interrodb.privatechannels.find_one()
     gid = str(ctx.guild.id)
     guildPC = PCs.get(gid)
     if not guildPC:
@@ -2545,7 +2441,7 @@ async def pchan(ctx: commands.Context, arg: str):
         guildPC.update({str(target.id):tchans})
         
         PCs.update({gid:guildPC})
-        tilndb.privatechannels.replace_one({}, PCs)
+        interrodb.privatechannels.replace_one({}, PCs)
         
         s = "Transferred ownership to " + target.name
     elif cmc[0].lower() == "manage_messages":
@@ -2593,7 +2489,7 @@ async def pchancreate(ctx: commands.Context, arg: str):
         cmc = hm.groupedsplit(arg)
     else:
         cmc = hm.groupedsplit(ctx.message.content)[1:]
-    PCs = tilndb.privatechannels.find_one()
+    PCs = interrodb.privatechannels.find_one()
     gid = str(ctx.guild.id)
     guildPC = PCs.get(gid)
     
@@ -2660,7 +2556,7 @@ async def pchancreate(ctx: commands.Context, arg: str):
     guildPC.update({aid:chans})
     
     PCs.update({gid:guildPC})
-    tilndb.privatechannels.replace_one({}, PCs)
+    interrodb.privatechannels.replace_one({}, PCs)
     
 @client.hybrid_command()
 async def pchandelete(ctx: commands.Context, arg: str):
@@ -2672,7 +2568,7 @@ async def pchandelete(ctx: commands.Context, arg: str):
         cmc = arg.split(" ")
     else:
         cmc = ctx.message.content.split(" ")[1:]
-    PCs = tilndb.privatechannels.find_one()
+    PCs = interrodb.privatechannels.find_one()
     gid = str(ctx.guild.id)
     guildPC = PCs.get(gid)
     #get channel
@@ -2710,11 +2606,11 @@ async def pchandelete(ctx: commands.Context, arg: str):
     guildPC.update({str(ctx.author.id):chans})
     
     PCs.update({gid:guildPC})
-    tilndb.privatechannels.replace_one({}, PCs)
+    interrodb.privatechannels.replace_one({}, PCs)
     
 @client.hybrid_command()
 async def pchanowned(ctx: commands.Context, arg: str = 'NoArgument'):
-    PCs = tilndb.privatechannels.find_one()
+    PCs = interrodb.privatechannels.find_one()
     gid = str(ctx.guild.id)
     guildPC = PCs.get(gid)
     chans = guildPC.get(str(ctx.author.id))
@@ -2731,7 +2627,7 @@ async def pchanowned(ctx: commands.Context, arg: str = 'NoArgument'):
 
 @client.hybrid_command()
 async def pchanrename(ctx: commands.Context, arg: str):
-    PCs = tilndb.privatechannels.find_one()
+    PCs = interrodb.privatechannels.find_one()
     gid = str(ctx.guild.id)
     guildPC = PCs.get(gid)
     chans = guildPC.get(str(ctx.author.id))
@@ -2758,7 +2654,7 @@ async def pchanrename(ctx: commands.Context, arg: str):
         
 @client.hybrid_command()
 async def pchansettopic(ctx: commands.Context, arg: str):
-    PCs = tilndb.privatechannels.find_one()
+    PCs = interrodb.privatechannels.find_one()
     gid = str(ctx.guild.id)
     guildPC = PCs.get(gid)
     chans = guildPC.get(str(ctx.author.id))
@@ -2873,77 +2769,58 @@ async def prune2(ctx, arg, prunemems=False):
     else:
         cmc = ctx.message.content.split(" ")[1:]
     days = None
+    targs = []
     prottargs = []
-    protsome = False
     for x in cmc:
         if not days:
             if x.isdigit():
                 days = int(x)
                 continue
-        if x == 'all':
-            roles = ctx.guild.roles
-            roles.remove(ctx.guild.default_role)
-            prottargs.extend(roles)
-            protsome = True
+        if x == 'alltheeveryone':
+            roles = list(ctx.guild.roles)
+            targs.extend(roles)
             continue
         target = hm.gettarget(ctx, x)
         if target:
-            prottargs.append(target)
-            protsome = True
+            targs.append(target)
             continue
         target = hm.gettarget(ctx, x.replace('-', '', 1))
         if target:
-            prottargs.remove(target)
+            prottargs.append(target)
             continue
-    if not protsome:
-        await ctx.send('As a precautionary measure against accidents you must protect something from pruning.')
-        return
         
     takeawhile = await ctx.send("This may take awhile, Scanning channels...")
     
-    allauthors = {"Thisisaplaceholderitem"}
+    allauthors = set()
     for channel in ctx.guild.text_channels:
         everyoneisprotected = True
-        for x in channel.members:
-            protected = False
-            if x in prottargs:
-                protected = True
-                continue
-            for y in x.roles:
-                if y in prottargs:
-                    protected = True
-                    break
-            if not protected:
+        for x in targs:
+            perms = channel.permissions_for(x)
+            if perms.read_messages and perms.send_messages:
                 everyoneisprotected = False
                 break
         if everyoneisprotected:
             continue
         
         try:
-            messages = await channel.history(limit=None, after=ctx.message.created_at - timedelta(days=days)).flatten()
-        except: continue
+            messages = [message async for message in channel.history(limit=None, after=ctx.message.created_at - timedelta(days=days))]
+        except discord.Forbidden: continue
         for x in messages:
-            allauthors.add(x.author.id)
+            xid = x.author.id
+            if xid not in allauthors:
+                allauthors.add(x.author.id)
         
     if prunemems:
         await takeawhile.edit(content="...kicking members...")
     else:
         await takeawhile.edit(content="...Approximating prunes...")
-        
+    
     peoplekicked = []
     for x in ctx.guild.members:
-        if x.id in allauthors:
-            continue
-        if x in prottargs:
-            continue
-        
-        cont = False
-        for y in x.roles:
-            if y in prottargs:
-                cont = True
-                break
-        if cont:
-            continue
+        if x.id in allauthors: continue
+        if x in prottargs: continue
+        if not set(x.roles).issubset(targs + [ctx.guild.default_role]): continue
+        if not set(x.roles).isdisjoint(prottargs): continue
         
         memdays = (ctx.message.created_at - x.joined_at).total_seconds()/3600/24
         if memdays < days:
@@ -3010,16 +2887,16 @@ async def report(ctx: commands.Context, arg: str):
     if reason != 'test':
         '''Store report in reports json'''
         mid = str(member.id)
-        reports = tilndb.reports.find_one()
+        reports = interrodb.reports.find_one()
         reasons = reports.get(mid)
         if not reasons:
             reasons = []
         reasons.append(f'{str(ctx.author)}: {reason}')
         reports.update({str(member.id): reasons})
-        tilndb.reports.replace_one({}, reports)
+        interrodb.reports.replace_one({}, reports)
     
     '''Post report to reports channel'''
-    servers = tilndb.reportchannels.find_one()
+    servers = interrodb.reportchannels.find_one()
     gid = str(ctx.guild.id)
     reportchannels = servers.get(gid) or []
     for x in ctx.guild.text_channels:
@@ -3033,7 +2910,7 @@ async def reportsfor(ctx: commands.Context, arg: str):
         return
     
     member = hm.getmember(ctx.guild, ctx.message.content.split(' ', 1)[1])
-    reports = tilndb.reports.find_one()
+    reports = interrodb.reports.find_one()
     reasons = reports.get(str(member.id))
     s = f'Reports for {str(member)}({member.mention}):```'
     for x in reversed(reasons):
@@ -3050,7 +2927,7 @@ async def setreportchannel(ctx: commands.Context, arg: str):
     
     channel = hm.getchannel(ctx.guild, ctx.message.content.split(' ', 1)[1])
     if channel:
-        servers = tilndb.reportchannels.find_one()
+        servers = interrodb.reportchannels.find_one()
         gid = str(ctx.guild.id)
         reportchannels = servers.get(gid) or []
         
@@ -3063,7 +2940,7 @@ async def setreportchannel(ctx: commands.Context, arg: str):
             await ctx.send(f'Added channel {channel.mention} to report channels')
             
         servers.update({gid: reportchannels})
-        tilndb.reportchannels.replace_one({}, servers)
+        interrodb.reportchannels.replace_one({}, servers)
     else:
         await ctx.send("No channel specified")
 
@@ -3072,7 +2949,7 @@ async def disablelogginghere(ctx: commands.Context, arg: str = None):
     if await hm.noperm(ctx, 'manage_channels', server=True):
         return
     
-    servers = tilndb.deloggedchannels.find_one()
+    servers = interrodb.deloggedchannels.find_one()
     gid = str(ctx.guild.id)
     channels = servers.get(gid) or []
     chid = ctx.channel.id
@@ -3084,7 +2961,7 @@ async def disablelogginghere(ctx: commands.Context, arg: str = None):
         await ctx.send(f'Removed this channel from being logged')
         
     servers.update({gid: channels})
-    tilndb.deloggedchannels.replace_one({}, servers)
+    interrodb.deloggedchannels.replace_one({}, servers)
 
 
 @client.hybrid_command()
@@ -3095,6 +2972,8 @@ async def notifyonstring(ctx: commands.Context, arg: str):
         cmc = hm.groupedsplit(arg)
     else:
         cmc = hm.groupedsplit(ctx.message.content)[1:]
+    # exclude = set(string.punctuation).union(set('’“”'))
+    #  and len(filter(lambda ch: ch not in exclude, x)) > 0
     trigger = None
     messagetext = None
     serverids = []
@@ -3120,7 +2999,7 @@ async def notifyonstring(ctx: commands.Context, arg: str):
         return
         
     global nosf
-    nosf = tilndb.notifyonstring.find_one()
+    nosf = interrodb.notifyonstring.find_one()
     data = nosf.get('data')
     cid = str(ctx.channel.id)
     uid = str(ctx.author.id)
@@ -3133,10 +3012,13 @@ async def notifyonstring(ctx: commands.Context, arg: str):
         else:
             await ctx.send(f"No trigger {trigger} to remove.")
     else:
-        data.append([cid, uid, trigger, messagetext, serverids, channelids])
+        if serverids or channelids:
+            data.append([cid, uid, trigger, messagetext, serverids, channelids])
+        else:
+            data.append([cid, uid, trigger, messagetext])
         await ctx.send(f"Added trigger \"{trigger}\", with message text \"{messagetext}\".")
     nosf.update({"data": data})
-    tilndb.notifyonstring.replace_one({}, nosf)
+    interrodb.notifyonstring.replace_one({}, nosf)
 
 # @client.hybrid_command()
 # async def archive(ctx: commands.Context, arg: str = None):
@@ -3244,6 +3126,16 @@ async def define(ctx: commands.Context, arg: str):
     if len(s) > 3:
         await ctx.send(f'{s[:1996]}```') 
 
+@client.hybrid_command()
+async def lootroll(ctx: commands.Context, arg: str='NoArgument'):
+    if inter := ctx.interaction:
+        # cmc = arg.split(" ")
+        mes = inter.message
+    else:
+        # cmc = ctx.message.content.split(" ")[1:]
+        mes = ctx.message
+        mes.content = ' '.join(mes.content.split(' ')[1:])
+    await wl.loot(mes)
 
 @client.hybrid_command()
 async def roll(ctx: commands.Context, arg: str):
@@ -3499,6 +3391,15 @@ async def rolecount(ctx: commands.Context, arg: str):
             s += "\n" + x.replace("_", " ") + ": " + str(num)
     if s != "​":
         await ctx.send(s)
+
+@client.hybrid_command()
+async def listroles(ctx: commands.Context, arg: str):
+    if await hm.noperm(ctx, 'manage_roles'):
+        return
+    s = ''
+    for x in ctx.guild.roles:
+        s += f'"{x.name}" '
+    await ctx.send(s)
     
 @client.command(pass_context = True)
 async def graph(ctx: commands.Context, arg: str = 'NoArgument'):
@@ -3634,31 +3535,10 @@ async def memberrolelist(ctx: commands.Context, arg: str):
     if len(s) > 4:
         await ctx.send(f'{s[:1990]}```')
 
-@client.hybrid_command()
-async def assignroles(ctx: commands.Context, arg: str):
+async def addremoveroles(ctx, arg, op):
     if await hm.noperm(ctx, 'manage_roles'):
         return
-    if inter := ctx.interaction:
-        cmc = hm.groupedsplit(arg)
-    else:
-        cmc = hm.groupedsplit(ctx.message.content)[1:]
-    roles = []
-    members = []
-    for x in cmc:
-        role = hm.getrole(ctx.guild, x)
-        if not role:
-            member = hm.getmember(ctx.guild, x)
-            if member: 
-                members.append(member)
-        else: roles.append(role)
-    for x in members:
-        await x.add_roles(*roles, atomic=False)      
-    await ctx.send('Success')
-
-@client.hybrid_command()
-async def removeroles(ctx: commands.Context, arg: str):
-    if await hm.noperm(ctx, 'manage_roles'):
-        return
+    if op not in ['add', 'remove']: return
     if inter := ctx.interaction:
         cmc = hm.groupedsplit(arg)
     else:
@@ -3672,8 +3552,19 @@ async def removeroles(ctx: commands.Context, arg: str):
             if member: members.append(member)
         else: roles.append(role)
     for x in members:
-        await x.remove_roles(*roles, atomic=False)
+        if op == 'remove':
+            await x.remove_roles(*roles, atomic=False)
+        elif op == 'add':
+            await x.add_roles(*roles, atomic=False)
     await ctx.send('Success')
+
+@client.hybrid_command()
+async def assignroles(ctx: commands.Context, arg: str):
+    await addremoveroles(ctx, arg, 'add')
+
+@client.hybrid_command()
+async def removeroles(ctx: commands.Context, arg: str):
+    await addremoveroles(ctx, arg, 'remove')
 
 @client.hybrid_command()
 async def calc(ctx: commands.Context, arg: str):
@@ -3697,7 +3588,7 @@ async def calc2(message, x):
     if not calcgood and '(' in x and ')' in x:
         calcgood = True
     
-    line = x.replace(",", "").replace("!", "!0").replace("\*", "*")
+    line = x.replace(",", "").replace("!", "!0").replace("\\*", "*")
     if calcgood:
         if '//' in line:
             line = line[:line.find('//')]
@@ -3903,7 +3794,7 @@ async def counting(ctx: commands.Context, arg: str = 'NoArgument'):
         cmc = None
     if not cmc:
         if not countingf:
-            countingf = tilndb.counting.find_one()
+            countingf = interrodb.counting.find_one()
         chanc = countingf.get(str(ctx.guild.id)).get(str(ctx.channel.id))
         cur = chanc.get('current')
         base = chanc.get('base') or '10'
@@ -3982,7 +3873,7 @@ async def counting(ctx: commands.Context, arg: str = 'NoArgument'):
         start = start if start else '0' if increment[0] in 'o+-' else '1' if increment[0] in '*1' else '2'
         #load file
         if not countingf:
-            countingf = tilndb.counting.find_one()
+            countingf = interrodb.counting.find_one()
         #load dictionary
         gid = str(ctx.guild.id)
         gc = countingf.get(gid) or {}
@@ -3993,7 +3884,7 @@ async def counting(ctx: commands.Context, arg: str = 'NoArgument'):
         gc.update({cid:chanc})
         countingf.update({gid:gc})
         #write to file
-        tilndb.counting.replace_one({}, countingf)
+        interrodb.counting.replace_one({}, countingf)
         
         if ctx.channel.id in gc:
             if not ctx.interaction:
@@ -4006,7 +3897,7 @@ async def word(ctx: commands.Context, arg: str):
     
     global haikuf
     if not haikuf:
-        haikuf = tilndb.words.find_one()
+        haikuf = interrodb.words.find_one()
     if inter := ctx.interaction:
         cmc = arg.split(" ")
     else:
@@ -4035,7 +3926,7 @@ async def word(ctx: commands.Context, arg: str):
             if nums:
                 s += '.  '
                 haikuf.update({cmc[x]: ','.join(nums)})
-                tilndb.words.replace_one({}, haikuf)
+                interrodb.words.replace_one({}, haikuf)
     await ctx.send(s[:-2][:2000])
     
     
@@ -4043,19 +3934,18 @@ async def word(ctx: commands.Context, arg: str):
 async def freedom(ctx: commands.Context, arg: str):
     if await hm.noperm(ctx, 'manage_guild'):
         return
-    servers = tilndb.freedom.find_one()
+    servers = interrodb.freedom.find_one()
     sid = str(ctx.guild.id)
     server = servers.get(sid) or False
     server = not server
     servers.update({sid: server})
-    tilndb.freedom.replace_one({}, servers)
+    interrodb.freedom.replace_one({}, servers)
     if server:
         await ctx.send("Freedom updated to true.")
     else:
         await ctx.send("Freedom updated to false.")
-        
-@client.hybrid_command()
-async def makeroleamuterole(ctx: commands.Context, arg: str):
+
+async def makeroleablank(ctx, arg, owargs):
     if await hm.noperm(ctx, 'manage_roles'):
         return
     
@@ -4072,74 +3962,30 @@ async def makeroleamuterole(ctx: commands.Context, arg: str):
         if role: break
     if not role: return
     if undo:
-        ow = {'send_messages': None, 'speak': None, 'add_reactions': None}
+        op = None
     else:
-        ow = {'send_messages': False, 'speak': False, 'add_reactions': False}
+        op = False
+    ow = {}
+    for x in owargs:
+        ow[x] = op
     for chan in ctx.guild.channels:
         try:
             overwrite = chan.overwrites_for(role)
             overwrite.update(**ow)
             await chan.set_permissions(role, overwrite=overwrite)
         except discord.Forbidden: pass
+
+@client.hybrid_command()
+async def makeroleamuterole(ctx: commands.Context, arg: str):
+    await makeroleablank(ctx, arg, ['send_messages', 'speak', 'add_reactions'])
 
 @client.hybrid_command()
 async def makeroleanoreactionsrole(ctx: commands.Context, arg: str):
-    if await hm.noperm(ctx, 'manage_roles'):
-        return
-    
-    if inter := ctx.interaction:
-        cmc = hm.groupedsplit(arg)
-    else:
-        cmc = hm.groupedsplit(ctx.message.content)[1:]
-    role = None
-    undo = False
-    for x in cmc:
-        if x == 'undo':
-            undo = True
-        role = hm.getrole(ctx.guild, x)
-        if role: break
-    if not role: return
-    if undo:
-        ow = {'add_reactions': None, 'external_emojis': None}
-    else:
-        ow = {'add_reactions': False, 'external_emojis': False}
-    for chan in ctx.guild.channels:
-        try:
-            overwrite = chan.overwrites_for(role)
-            overwrite.update(**ow)
-            await chan.set_permissions(role, overwrite=overwrite)
-        except discord.Forbidden: pass
+    await makeroleablank(ctx, arg, ['add_reactions', 'external_emojis'])
 
 @client.hybrid_command()
 async def makeroleaninvisiblerole(ctx: commands.Context, arg: str):
-    if await hm.noperm(ctx, 'manage_roles'):
-        return
-    
-    if inter := ctx.interaction:
-        cmc = hm.groupedsplit(arg)
-    else:
-        cmc = hm.groupedsplit(ctx.message.content)[1:]
-    role = None
-    undo = False
-    for x in cmc:
-        if x == 'undo':
-            undo = True
-        role = hm.getrole(ctx.guild, x)
-        if role: break
-    if not role: return
-    if undo:
-        ow = {'read_messages': None, 'send_messages': None, 'connect': None, 'add_reactions': None}
-    else:
-        ow = {'read_messages': False, 'send_messages': False, 'connect': False, 'add_reactions': False}
-    for chan in ctx.guild.channels:
-        try:
-            overwrite = chan.overwrites_for(role)
-            overwrite.update(**ow)
-            await chan.set_permissions(role, overwrite=overwrite)
-        except: 
-            print(chan.name)
-            pass
-
+    await makeroleablank(ctx, arg, ['read_messages', 'send_messages', 'connect', 'add_reactions'])
 
 @client.hybrid_command()
 async def pin(ctx: commands.Context, arg: str):
@@ -4347,7 +4193,7 @@ async def cr(ctx: commands.Context, arg: str):
 async def customresponses(ctx: commands.Context, arg: str):
     await cr2(ctx, arg)
 async def cr2(ctx: commands.Context, arg: str):
-    if await hm.noperms(ctx, 'manage_server', 'manage_messages', server=True, metoo=False):
+    if await hm.noperms(ctx.author, 'manage_server', 'manage_messages', server=True, metoo=False):
         return
     
     global crf
@@ -4356,7 +4202,7 @@ async def cr2(ctx: commands.Context, arg: str):
     else:
         cmc = hm.groupedsplit(ctx.message.content.split(" ", 1)[1])
     if not crf:
-        servers = tilndb.customresponses.find_one()
+        servers = interrodb.customresponses.find_one()
     else:
         servers = crf
     sid = str(ctx.guild.id)
@@ -4367,7 +4213,7 @@ async def cr2(ctx: commands.Context, arg: str):
     selfopts = []
     cmc2 = []
     for x in cmc:
-        x = x.replace('\\n', '\n').replace(r'\`', '`')
+        x = x.replace('\\n', '\n').replace(r'\\`', '`')
         if x in opts:
             selfopts.append(x)
         elif x.endswith('%'):
@@ -4389,7 +4235,7 @@ async def cr2(ctx: commands.Context, arg: str):
     else:
         server.update({cmc2[0]:[selfopts, responses]})
     servers.update({sid: server})
-    tilndb.customresponses.replace_one({}, servers)
+    interrodb.customresponses.replace_one({}, servers)
     crf = servers
     await ctx.send("Success")
 
@@ -4402,7 +4248,7 @@ async def cr2(ctx: commands.Context, arg: str):
 #         cmc = hm.groupedsplit(arg)
 #     else:
 #         cmc = hm.groupedsplit(ctx.message.content.split(" ", 1)[1])
-#     servers = tilndb.customresponses.find_one()
+#     servers = interrodb.customresponses.find_one()
 #     sid = str(ctx.guild.id)
 #     server = servers.get(sid) or {}
     
@@ -4415,7 +4261,7 @@ async def listcustomresponses(ctx: commands.Context, arg: str = 'NoArgument'):
 async def lcr2(ctx: commands.Context, arg: str = 'NoArgument'):
     if await hm.noperm(ctx, 'manage_messages', server=True):
         return
-    servers = tilndb.customresponses.find_one()
+    servers = interrodb.customresponses.find_one()
     sid = str(ctx.guild.id)
     server = servers.get(sid) or {}
     
@@ -4428,7 +4274,7 @@ async def lcr2(ctx: commands.Context, arg: str = 'NoArgument'):
         opres = ''
         for x in opre:
             for y in x:
-                y = y.replace("\n", "\\n").replace('`', r'\`')
+                y = y.replace("\n", "\\n").replace('`', r'\\`')
                 opres += f' "{y}"' if ' ' in y else f' {y}'
         s = '```\n'
         s += f'{hm.getprefix(ctx.guild.id)}cr "{cmc[0]}"{opres}```'
@@ -4438,13 +4284,13 @@ async def lcr2(ctx: commands.Context, arg: str = 'NoArgument'):
     s = '```'
     invocations = '```'
     for k, v in server.items():
-        k = k.replace("\n", "\\n").replace('`', r'\`')
+        k = k.replace("\n", "\\n").replace('`', r'\\`')
         invocations += k + '\n'
         s += f'\n\n"{k}":'
         #[" " + str(a) + "" for a in v]
         for x in v:
             for y in x:
-                y = y.replace("\n", "\\n").replace('`', r'\`')
+                y = y.replace("\n", "\\n").replace('`', r'\\`')
                 s += f' "{y}"' if ' ' in y else f' {y}'
     if len(s) < 1997:
         await ctx.send(s[:3] + s[4:] + '```')
@@ -4698,7 +4544,7 @@ async def createthechannels(ctx: commands.Context, arg: str):
 async def rainbowizetheroles(ctx: commands.Context, arg: str):
     if await hm.noperm(ctx, 'manage_roles'):
         return
-    if not ctx.channel.permissions_for(ctx.guild.get_member(client.user.id)).manage_roles:
+    if not ctx.channel.permissions_for(ctx.guild.me).manage_roles:
         await ctx.send("I require the manage roles permission for this.")
         return
     
@@ -4910,21 +4756,19 @@ async def gethexcodes(ctx: commands.Context, arg: str = 'NoArgument'):
         await ctx.send(file=discord.File(f"graphs/graph{tim}.png"), content=tempres[:2000])
 
 @client.hybrid_command()
-async def removedependantroles(ctx: commands.Context, role: str, dependants: str):
+async def removedependantroles(ctx: commands.Context, reliedupon: str, dependants: str):
     if not ctx.channel.permissions_for(ctx.author).manage_roles:
         return
-    if inter := ctx.interaction:
-        cmc = arg.split(" ")
-    else:
+    if not ctx.interaction:
         cmc = ctx.message.content.split(" ")[1:]
-    reliedupon = None
-    dependants = []
-    for x in cmc:
-        if role := hm.getrole(ctx.guild, x):
-            if not reliedupon:
-                reliedupon = role
-            else:
-                dependants.append(role)
+        reliedupon = None
+        dependants = []
+        for x in cmc:
+            if role := hm.getrole(ctx.guild, x):
+                if not reliedupon:
+                    reliedupon = role
+                else:
+                    dependants.append(role)
     peeps = []
     roless = []
     for x in ctx.guild.members:
@@ -4967,16 +4811,6 @@ async def length(ctx: commands.Context, arg: str):
         cmc = ctx.message.content.split(" ", 1)[1]
     await ctx.send(len(cmc))
 
-# @client.hybrid_command()
-# async def waketilnup(ctx: commands.Context, arg: str):
-#     cmc = ctx.message.content.split(" ", 1)[1]
-#     voice = tts.sapi.Sapi()
-#     voice.create_recording('tts.wav', cmc)
-
-#     sd.default.device = 6
-#     numpyAudioArray = numpy.array(read("tts.wav")[1])
-#     sd.play(numpyAudioArray, 22050)
-
 @client.hybrid_command()
 async def tellbotter(ctx: commands.Context, arg: str):
     
@@ -4988,38 +4822,8 @@ async def tellbotter(ctx: commands.Context, arg: str):
         return
     botter = client.get_user(115707766714138627)
     await botter.send(str(ctx.author) + ': ' + ' '.join(cmc))
-
-@client.hybrid_command()
-async def dm(ctx: commands.Context, arg: str):
-    
-    if inter := ctx.interaction:
-        cmc = arg.split(" ")
-    else:
-        cmc = ctx.message.content.split(" ")[1:]
-    target = None
-    guild = None
-    text = ''
-    for x in cmc:
-        if not guild:
-            guild = hm.getguild(client, x)
-            if guild:
-                continue
-        if not target:
-            target = hm.getmember((guild or ctx.guild), x)
-            if target:
-                continue
-        text += x + ' '
-    if not target:
-        try:
-            target = await client.get_user(int(cmc[0]))
-        except: return
-    try:
-        await target.send(str(ctx.author) + ': ' + text.strip())
-    except:
-        print(f'cannot send message to them, {ctx.author}')
     
 async def enrf2(ctx, arg, d=False):
-    
     global enrf
     if inter := ctx.interaction:
         cmc = arg.split(" ")
@@ -5103,15 +4907,29 @@ async def givereadaccess(ctx: commands.Context, arg: str):
             await ctx.channel.set_permissions(role, overwrite=overwrite)
     if not ctx.interaction:
         await ctx.message.delete()
-    
+
 @client.hybrid_command()
-async def listroles(ctx: commands.Context, arg: str):
-    if await hm.noperm(ctx, 'manage_roles'):
-        return
-    s = ''
-    for x in ctx.guild.roles:
-        s += f'"{x.name}" '
-    await ctx.send(s)
+async def listinactivechannels(ctx: commands.Context, arg: str = 'NoArgument'):
+    channels = []
+    cantsee = []
+    for x in ctx.guild.text_channels:
+        if not x.permissions_for(ctx.guild.me).read_message_history or not x.permissions_for(ctx.guild.me).read_message_history:
+            cantsee.append(x.mention)
+            continue
+        l = [message async for message in x.history(limit=1)]
+        if l: latest = l[0]
+        else: 
+            channels.append(x.mention)
+            continue
+        lastactivity = latest.edited_at or latest.created_at
+        timesince = datetime.now(timezone.utc) - lastactivity
+        if timesince.days >= 14:
+            channels.append(x.mention)
+    s = 'Channels with no messages in the last 2 weeks:\n'
+    s += ' '.join(channels)
+    s += '\n\nChannels I cannot see:\n'
+    s += ' '.join(cantsee)
+    await ctx.send(s[:2000])
 
 # @client.hybrid_command()
 # async def streaming(ctx: commands.Context, arg: str):
@@ -5123,11 +4941,6 @@ async def listroles(ctx: commands.Context, arg: str):
 #         await ctx.send(s)
 #     else:
 #         await ctx.send('No one is streaming in this server.')
-
-
-# @client.hybrid_command()
-# async def shrug(ctx: commands.Context, arg: str):
-#     await ctx.send(r"¯\\\_(ツ)\_/¯")
     
 @client.command()
 async def annoyingspoilerization(ctx):
@@ -5153,7 +4966,7 @@ async def units(ctx: commands.Context, arg: str):
         result = unit_registry.Quantity(num, cmc[1])
         result = result.to(cmc[2])
     except Exception as e:
-        await ctx.send((str(e).split(':')[-1]).replace('**', '^').replace('*', '\*'))
+        await ctx.send((str(e).split(':')[-1]).replace('**', '^').replace('*', '\\*'))
         return
     if float(str(result).split()[0]) != 1.00:
         result = (str(result) + 's').replace('ss', 's')
@@ -5162,29 +4975,15 @@ async def units(ctx: commands.Context, arg: str):
 
 @client.command()
 async def ctof(ctx):
-    # 
-    if inter := ctx.interaction:
-        cmc = celcius
-    else:
-        cmc = ctx.message.content.split(" ", 1)[1]
+    cmc = ctx.message.content.split(" ", 1)[1]
     result = (float(cmc)*(9/5)+32)
-    if inter:
-        await inter.response.send_message(result)
-    else:
-        await ctx.send(result)
+    await ctx.send(result)
 
 @client.command()
 async def ftoc(ctx):
-    # 
-    if inter := ctx.interaction:
-        cmc = fahrenheit
-    else:
-        cmc = ctx.message.content.split(" ", 1)[1]
+    cmc = ctx.message.content.split(" ", 1)[1]
     result = (float(cmc)-32)*(5/9)
-    if inter:
-        await inter.response.send_message(result)
-    else:
-        await ctx.send(result)
+    await ctx.send(result)
     
 @client.hybrid_command()
 async def movie(ctx: commands.Context, arg: str = 'NoArgument'):
@@ -5510,9 +5309,47 @@ async def reducemyarray(ctx: commands.Context, arg: str):
             file = open('message.txt', 'r')
             await ctx.send(file=discord.File(file))
             file.close()
-        
+
+# @client.command()
+# async def modvc(ctx):
+#     global voice
+#     if await hm.noperm(ctx, 'mute_members', server=True):
+#         return
+#     cmc = ctx.message.content.split(" ")[1:]
+
+#     args = [60*5, 70, 60, 10]
+#     argbool = [False]*4
+
+#     prot = []
+#     for x in cmc:
+#         if m := hm.getmember(ctx.guild, x):
+#             prot.append(m)
+#         elif hm.int_check(x):
+#             for idy, y in enumerate(argbool):
+#                 if not y:
+#                     argbool[idy] = True
+#                     args[idy] = float(x)
+#                     break
+
+#     channel = ctx.author.voice.channel
+#     voice = await channel.connect(cls=voice_recv.VoiceRecvClient)
+#     voice.listen(VoiceMod(prot, args[0], args[1]/100, args[2], args[3]))
+
+#     s = f"Set moderation settings to: track the last {args[0]} seconds, "
+#     s += f"maximum talking %: {(args[1])}%, "
+#     s += f"mute time: {args[2]}"
+#     # s += f", and stop making the individual allotted time smaller at {args[3]} speaking members"
+#     if len(prot) > 0:
+#         s += "\n\n"
+#         s += f"ignored people: {', '.join([str(x) for x in prot])}"
+
+
+#     await channel.send(s)
+
 @client.hybrid_command()
 async def leavevc(ctx: commands.Context, arg: str):
+    if ctx.author.id != 115707766714138627:
+        return
     global closingflag
     for x in client.voice_clients:
         if x.guild == ctx.guild:
@@ -5712,140 +5549,46 @@ async def replace(ctx: commands.Context, arg: str):
     mes_sageid = ctx.message.id
     if not ctx.interaction:
         await ctx.message.delete()
-    
-@client.command()
-async def killbot(ctx):
-    if str(ctx.author) == "Tiln#0416":
-        global mes_sageid
-        mes_sageid = ctx.message.id
-        if not ctx.interaction:
-            await ctx.message.delete()
-        await client.logout()
 
-# @client.command()
-# async def restartbot(ctx):
-#     if str(ctx.author) == "Tiln#0416" or str(ctx.author) == "AndyVshr#1639":
-#         global mes_sageid
-#         mes_sageid = ctx.message.id
+# async def tmfsm2(ctx, arg, type=0):
+#     if inter := ctx.interaction:
+#         cmc = arg.split(" ")
+#     else:
+#         cmc = ctx.message.content.split(" ")[1:]
+#     seconds = 10
+#     chan = None
+#     if len(cmc):
+#         for x in cmc:
+#             if not chan:
+#                 chan = hm.getchannel(ctx.guild, x)
+#                 if chan:
+#                     continue
+#             seconds = hm.dehumantime(x)[0]
+#     try: 
 #         if not ctx.interaction:
 #             await ctx.message.delete()
-#BAD LINE F STRING and *         os.execl(sys.executable, sys.executable, f'"{*sys.argv}"')
-#         await client.logout()
+#     except: ""
+#     if not hm.authorperm(ctx.author, ctx.channel, 'manage_messages'):
+#         seconds = 10
+#     if type == 0:
+#         if chan:
+#             await chan.send(f'​\n\n'*666+'\n​', delete_after=seconds)
+#         else:
+#             await ctx.send(f'​\n\n'*666+'\n​', delete_after=seconds)
+#     else:
+#         if chan:
+#             await chan.send('​' + '\n'*1998 + '​', delete_after=seconds)
+#         else:
+#             await ctx.send('​' + '\n'*1998 + '​', delete_after=seconds)
 
-# @client.hybrid_command()
-# async def printt(ctx: commands.Context, arg: str):
-#     if str(ctx.author) == "Tiln#0416" or str(ctx.author) == "AndyVshr#1639":
-#         print(ctx.message.content)
-
-# @client.hybrid_command()
-# async def guildlb(ctx: commands.Context, arg: str):
-#     await ctx.send(guild_ids)
-
-async def tmfsm2(ctx, arg, type=0):
-    if inter := ctx.interaction:
-        cmc = arg.split(" ")
-    else:
-        cmc = ctx.message.content.split(" ")[1:]
-    seconds = 10
-    chan = None
-    if len(cmc):
-        for x in cmc:
-            if not chan:
-                chan = hm.getchannel(ctx.guild, x)
-                if chan:
-                    continue
-            seconds = hm.dehumantime(x)[0]
-    try: 
-        if not ctx.interaction:
-            await ctx.message.delete()
-    except: ""
-    if not hm.authorperm(ctx.author, ctx.channel, 'manage_messages'):
-        seconds = 10
-    if type == 0:
-        if chan:
-            await chan.send(f'​\n\n'*666+'\n​', delete_after=seconds)
-        else:
-            await ctx.send(f'​\n\n'*666+'\n​', delete_after=seconds)
-    else:
-        if chan:
-            await chan.send('​' + '\n'*1998 + '​', delete_after=seconds)
-        else:
-            await ctx.send('​' + '\n'*1998 + '​', delete_after=seconds)
-
-#The maximally floody spam message
-# @client.hybrid_command()
-# async def tmfsm(ctx: commands.Context, arg: str):
-#     await tmfsm2(ctx, arg, type=0)
+# #The maximally floody spam message
+# # @client.hybrid_command()
+# # async def tmfsm(ctx: commands.Context, arg: str):
+# #     await tmfsm2(ctx, arg, type=0)
         
-@client.hybrid_command()
-async def tfsm(ctx: commands.Context, arg: str):
-    await tmfsm2(ctx, arg, type=0)
-
-@client.hybrid_command()
-async def spam(ctx: commands.Context, arg: str):
-    global mes_sageid
-    if await hm.noperm(ctx, 'manage_messages', server=True):
-        mes_sageid = ctx.message.id
-        if not ctx.interaction:
-            await ctx.message.delete()
-        return
-    if inter := ctx.interaction:
-        cmc = arg.split(" ")
-    else:
-        cmc = ctx.message.content.split(" ")[1:]
-
-    repetitions = None
-    interval = None
-    text = ""
-    for x in cmc:
-        if hm.integer(x):
-            if not repetitions:
-                repetitions = int(x)
-                continue
-            if not interval:
-                interval = int(x)
-                continue
-        text += x + ' '
-    
-    if not repetitions: repetitions = 1
-
-    mes_sageid = ctx.message.id
-    if not ctx.interaction:
-        await ctx.message.delete()
-    for x in range(repetitions):
-        await ctx.send(text.strip())
-        await asyncio.sleep(interval or 1)
-    
-
 # @client.hybrid_command()
-# async def aptrentcalc(ctx: commands.Context, arg: str):
-#     if ctx.guild.id != 481476691009470474:
-#         return
-#     cmc = ctx.message.content.replace(',', '').split(" ")[1:]
-    
-#     Ns = []
-#     for x in cmc:
-#         try:
-#             Ns.append(float(x))
-#         except:
-#             await ctx.send(f'{x} in not a valid number')
-#             return
-#     if len(Ns) < 3:
-#         await ctx.send(f'Too few arguments')
-#         return
-#     Ns.sort(reverse=True)
-#     if len(Ns) == 3:
-#         Ns.append(0.00)
-#     if Ns[2] != int(Ns[2]):
-#         temp = Ns[2]
-#         Ns[2] = Ns[3]
-#         Ns[3] = temp
-#     Ns[2] = int(Ns[2])
-#     '''Total rent, portion that is utility, people, fee(for utility payer)'''
-#     TC = Ns[0] + Ns[1]
-#     EPR = math.ceil((TC/Ns[2])*100)/100
-#     UpR = math.ceil((EPR - Ns[1])*100)/100
-#     await ctx.send(f'Rent: {Ns[0]}\nUtility: {Ns[1]}\nEach person\'s rent: {EPR}\nUtility payer\'s rent(second payment): {UpR}\n')
+# async def tfsm(ctx: commands.Context, arg: str):
+#     await tmfsm2(ctx, arg, type=0)
 
 @client.hybrid_command()
 @commands.guild_only()
@@ -5887,6 +5630,8 @@ async def setup(ctx: commands.Context):
     # em.add_field(name=f"{w}", value=f"{z.mention}")
 
 # file = open("tok-1.txt", 'r')
-file = open("tok.txt", 'r')
-client.run(file.readline())
-file.close()
+# file = open("tok.txt", 'r')
+# client.run(file.readline())
+# file.close()
+
+client.run(os.getenv("BOT_TOKEN"))

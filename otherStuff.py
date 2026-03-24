@@ -18,8 +18,8 @@ from collections import defaultdict
 from pymongo import MongoClient
 from datetime import datetime
 
-mc = MongoClient('localhost', 27017)
-tilndb = mc.tiln
+# mc = MongoClient('localhost', 27017)
+# tilndb = mc.tiln
 
 servers = None
 freedomf = None
@@ -33,23 +33,24 @@ class HelpMethods(object):
     emojdoub = ['🆎', '🆑', '🆔', '🆖', '🆗', '🆚', '🚾', '‼', '⁉', '🆕', '🆘', '🆒', '🆓', '🔟']
     texttomorse = {'A':'.-', 'B':'-...', 'C':'-.-.', 'D':'-..', 'E':'.', 'F':'..-.', 'G':'--.', 'H':'....', 'I':'..', 'J':'.---', 'K':'-.-', 'L':'.-..', 'M':'--', 'N':'-.', 'O':'---', 'P':'.--.', 'Q':'--.-', 'R':'.-.', 'S':'...', 'T':'-', 'U':'..-', 'V':'...-', 'W':'.--', 'X':'-..-', 'Y':'-.--', 'Z':'--..', '1':'.----', '2':'..---', '3':'...--', '4':'....-', '5':'.....', '6':'-....', '7':'--...', '8':'---..', '9':'----.', '0':'-----', ', ':'--..--', '.':'.-.-.-', '?':'..--..', '/':'-..-.', '-':'-....-', '(':'-.--.', ')':'-.--.-', '?':'-.-.--', "'":"'"}
     # texttomorsedic = {'A':'.-', 'B':'-...', 'C':'-.-.', 'D':'-..', 'E':'.', 'F':'..-.', 'G':'--.', 'H':'....', 'I':'..', 'J':'.---', 'K':'-.-', 'L':'.-..', 'M':'--', 'N':'-.', 'O':'---', 'P':'.--.', 'Q':'--.-', 'R':'.-.', 'S':'...', 'T':'-', 'U':'..-', 'V':'...-', 'W':'.--', 'X':'-..-', 'Y':'-.--', 'Z':'--..', '1':'.----', '2':'..---', '3':'...--', '4':'....-', '5':'.....', '6':'-....', '7':'--...', '8':'---..', '9':'----.', '0':'-----', ', ':'--..--', '.':'.-.-.-', '?':'..--..', '/':'-..-.', '-':'-....-', '(':'-.--.', ')':'-.--.-'}
-    
+    def __init__(self, interrodb=None):
+        self.db = interrodb
     
     def cmds(self):
         global servers
         if not servers:
-            servers = tilndb.servers.find_one()
+            servers = self.db.servers.find_one()
         return servers
     
     def updatecmds(self, serversu):
         global servers
         servers = serversu
-        tilndb.servers.replace_one({}, servers)
+        self.db.servers.replace_one({}, servers)
     
     def cmddisabled(self, sid, cmd):
         global servers
         if not servers:
-            servers = tilndb.servers.find_one()
+            servers = self.db.servers.find_one()
         server = servers.get(sid) or []
         for x in server:
             if cmd == x:
@@ -60,7 +61,7 @@ class HelpMethods(object):
     def freedom(self, sid):
         global freedomf
         if not freedomf:
-            freedomf = tilndb.freedom.find_one()
+            freedomf = self.db.freedom.find_one()
         server = freedomf.get(sid) or True
         return server
         
@@ -139,8 +140,13 @@ class HelpMethods(object):
 
     async def createpc(self, ctx, owner, chin, catnid="private channels", voice=False):
         if not (chan := discord.utils.get(ctx.guild.channels, name=chin) or discord.utils.get(ctx.guild.channels, mention=chin)):
-            if not (cat := discord.utils.get(ctx.guild.categories, name=catnid)) and catnid.isdigit():
+            if catnid.isdigit():
                 cat = discord.utils.get(ctx.guild.categories, id=int(catnid))
+            else:
+                for x in ctx.guild.categories:
+                    if x.name.lower() == catnid:
+                        cat = x
+                        break
             if not cat:
                 try:
                     cat = await ctx.guild.create_category(catnid, reason="Setting up private channels")
@@ -172,23 +178,23 @@ class HelpMethods(object):
     
     
     def openguildjson(self, fp, gid):
-        guilds = eval(f'tilndb.{fp.split("/")[-1].split(".")[0]}.find_one()')
+        guilds = self.db[fp.split("/")[-1].split(".")[0]].find_one()
         return guilds.get(gid)
     
             
     def getprefix(self, gid):
         global prefixf
         if not prefixf:
-            prefixf = tilndb.prefixes.find_one()
+            prefixf = self.db.prefixes.find_one()
         pf = prefixf.get(str(gid)) or '!?'
         return pf
     
     def setprefix(self, gid, pref):
         global prefixf
         if not prefixf:
-            prefixf = tilndb.prefixes.find_one()
+            prefixf = self.db.prefixes.find_one()
         prefixf.update({gid:pref})
-        tilndb.prefixes.replace_one({}, prefixf)
+        self.db.prefixes.replace_one({}, prefixf)
     
     
     def wordnumtonum(self, s2, rpldic):
@@ -351,7 +357,7 @@ class HelpMethods(object):
             if len(melp) == len(perms):
                 s = ''
                 if len(perms) > 1: s = 's'
-                metosend = f"I must have the {strperms} permission{s} to execute that command."
+                metosend = f" I must have the {strperms} permission{s} to execute that command."
             if len(lackingperms) == len(perms):
                 if len(perms) > 1:
                     tosend = f"You must have one of these permissions to use that command: `{strperms}`"
@@ -382,12 +388,12 @@ class HelpMethods(object):
         return False
     
     def addprevcalc(self, uid, message):
-        users = tilndb.usercalcs.find_one()
+        users = self.db.usercalcs.find_one()
         user = users.get(uid) or ('', '')
         return str(user[0]) + message
     
     def getprevvars(self, uid):
-        users = tilndb.usercalcs.find_one()
+        users = self.db.usercalcs.find_one()
         user = users.get(uid) or ('', {})
         uservars = user[1]
         return {}
@@ -396,7 +402,7 @@ class HelpMethods(object):
         return self.getprevvars(uid).get(var)
         
     def storeprevcalc(self, uid, calc=None, vars=None):  # @ReservedAssignment
-        users = tilndb.usercalcs.find_one()
+        users = self.db.usercalcs.find_one()
         user = users.get(uid) or (calc if calc != None else '0', {})
         if calc == None:
             calc = user[0]
@@ -404,7 +410,7 @@ class HelpMethods(object):
         if vars:
             uservars.update(vars)
         users.update({uid: (calc, uservars)})
-        tilndb.usercalcs.replace_one({}, users)
+        self.db.usercalcs.replace_one({}, users)
         
     def gettarget(self, ctx, posstarget):
         target = None
@@ -805,7 +811,7 @@ class HelpMethods(object):
             gc.update({cid:chanc})
             countingf.update({gid:gc})
             #write to file
-            tilndb.counting.replace_one({}, countingf)
+            self.db.counting.replace_one({}, countingf)
             if base != '10' or inc == 'prime':
                 await self.countingtopic(str(cur), str(base), message.channel)
             for y in reactions:
@@ -814,7 +820,7 @@ class HelpMethods(object):
     async def countingtopic(self, num, base, chan):
         await asyncio.sleep(7)
 
-        countingf = tilndb.counting.find_one()
+        countingf = self.db.counting.find_one()
         gid = str(chan.guild.id)
         gc = countingf.get(gid) or {}
         cid = str(chan.id)
@@ -826,7 +832,7 @@ class HelpMethods(object):
         s = num
         if base != '10':
             strbaseconv = self.converthelper(num, '10', base)
-            t = '\_'
+            t = '\\_'
             s = f'{strbaseconv.replace("_", t)} || '
             subress = []
             for idx, x in enumerate(strbaseconv):
@@ -837,7 +843,7 @@ class HelpMethods(object):
                     subres = '0'
                 if base10x == '00':
                     base10x == '0'
-                s += f'({base10x}/{x.replace("_", t)})\*{base}^{exp} = {subres}, '
+                s += f'({base10x}/{x.replace("_", t)})\\*{base}^{exp} = {subres}, '
                 subress.append(subres) 
             s += f'{" + ".join(subress)} = {num}'
 

@@ -12,17 +12,19 @@ class WhiteLotus(object):
     
 
     def __init__(self):
-        self.rockchannels = [1351488087510876261]
-        self.treeandflowerchannels = [1350902682872713327, 1351488117088980992]
-        self.gatheringchannels = self.rockchannels + self.treeandflowerchannels
-        self.lootchannels = [1351438677825552435, 1351490710972534796]
+        # self.rockchannels = [1351488087510876261]
+        # self.treeandflowerchannels = [1350902682872713327, 1351488117088980992]
+        # self.gatheringchannels = self.rockchannels + self.treeandflowerchannels
+        # self.lootchannels = [1351438677825552435, 1351490710972534796]
         self.emojAN = ['🇦', '🇧', '🇨', '🇩', '🇪', '🇫', '🇬', '🇭', '🇮', '🇯', '🇰', '🇱', '🇲', '🇳', '🇴', '🇵', '🇶', '🇷', '🇸', '🇹', '🇺', '🇻', '🇼', '🇽', '🇾', '🇿', '0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣']
-        self.rollemoji = ['🔥', '🪙', '❌']
+        self.rollemoji = ['🔥', '🪙', '❌', '🗑️']
 
     def generateuniquerolls(self, n):
         if n > 100:
-            return [0] * n
-        return random.sample(range(1, 101), n)
+            toprange = n + 1
+        else:
+            toprange = 101
+        return random.sample(range(1, toprange), n)
 
     async def loot(self, message):
         if not (ats := message.attachments):
@@ -42,14 +44,21 @@ class WhiteLotus(object):
         s += f'{message.author.mention} started a roll:'
 
         newmes = await message.channel.send(s, files=files)
-        await message.delete()
+        try:
+            await message.delete()
+        except discord.Forbidden:
+            pass
     
         for x in self.rollemoji:
             await newmes.add_reaction(x)
             await asyncio.sleep(0.02)
 
-    async def lootroll(self, message, member):
-        if not member.mention in message.content or message.author.id != 447268676702437376:
+    async def lootroll(self, message, member, emoji, me):
+        if not member.mention in message.content or message.author.id != me.id:
+            return
+        if emoji == '🗑️':
+            if not message.channel.permissions_for(member).manage_messages:
+                await message.delete()
             return
         needgreed = self.rollemoji[:2]
         needers = []
@@ -69,7 +78,7 @@ class WhiteLotus(object):
             rollers = greeders
         else: return
 
-        rollers = [x.nick for x in rollers]
+        rollers = [x.display_name for x in rollers]
         random.shuffle(rollers)
         rolls = sorted(self.generateuniquerolls(len(rollers)), reverse=True)
         s = '```\n'
@@ -78,62 +87,6 @@ class WhiteLotus(object):
         s += ' '.join([f'{rolls[x]: <{len(rollers[x])}}' for x in range(len(rolls))])
         s += '\n```'
         await message.edit(content=f'{message.content}{s}')
-
-
-    async def gatheringtimers(self, message):
-        return #until timers are figured out
-        p = re.compile(r"<t:[0-9]{10}:[R|t|T|d|D|f|F]>")
-        if not (ats := message.attachments) or p.search(message.content):
-            return
-        
-        files = []
-        for x in range(len(ats)):
-            at = ats[x]
-            byts = requests.get(at.proxy_url).content
-            file = io.BytesIO(byts)
-            file.name = at.filename
-            files.append(discord.File(file))
-
-        if message.channel.id in self.rockchannels:
-            h = 2
-        elif message.channel.id in self.treeandflowerchannels:
-            h = 4
-        
-        timestamp = f'<t:{int((message.created_at + timedelta(hours=h) - timedelta(seconds=30)).timestamp())}:R>'
-        s = f'{message.content or "<Space Intentionally Left Blank>"}\n\n Poster: {message.author.mention} When: {timestamp}'
-
-        newmes = await message.channel.send(s, files=files)
-        await message.delete()
-
-        for x in 'claim':
-            await newmes.add_reaction(self.emojAN[ord(x) - 97])
-            await asyncio.sleep(0.02)
-        await newmes.add_reaction('❓')
-        await asyncio.sleep(0.02)
-        await newmes.add_reaction('☑️')
-
-    async def gatherablereact(self, member, message, chan, emoji, add):
-        return #until timers are figured out
-        if emoji.name != '☑️':
-            return
-        if add:
-            for x in message.reactions:
-                if x.emoji != '☑️': continue
-                users = [user async for user in x.users()]
-                for y in users:
-                    if y.id not in [447268676702437376, member.id]:
-                        await message.remove_reaction(emoji, member)
-                        return
-                break
-            if message.author.id == 447268676702437376:
-                splitmessage = message.content.split('\n')
-                splitmessage[-2] = f'Claimant: {member.mention}'
-                await message.edit(content='\n'.join(splitmessage))
-            await self.reminderjob(member, message)
-        elif message.author.id == 447268676702437376 and str(member.mention) in message.content:
-            splitmessage = message.content.split('\n')
-            splitmessage[-2] = ''
-            await message.edit(content='\n'.join(splitmessage))
 
     async def reminderjob(self, member, message):
         p = re.compile(r"<t:([0-9]{10}):[R|t|T|d|D|f|F]>")
